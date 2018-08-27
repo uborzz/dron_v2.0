@@ -1,0 +1,93 @@
+Trackeo de la corona va perfect. Pero el dron no tiene fuerza para levantarlo. (impresa a 0.4mm de grosor con PLA)
+    Problema del brillo igualmente mejorable.
+    Probar menos grosor en PLA.
+
+Diseño más pequeño de la corona.
+
+Probaremos con Fileflex o el filamento de madera (es mate). El filaflex será mas sencillo de acoplar a drones pero probablemente no sea suficientemente mate.
+    !!! Hay que pedirlo - Preguntar si alguien tiene?
+    Ajustar impresora para tirar bien filaflex
+        Filaflex no necesita cama caliente.
+        tensor hephestos: https://www.thingiverse.com/thing:779011
+
+Calibración de la cámara hecha, pero penalizamos en un 20% la velocidad de tratamiento de las imagenes si lo utilizamos.
+    Latencia de la camara medida imagen test_refresco_camara.png
+        ~120 ms de normal. No está mal. max observadoAlgunas 140ms.
+
+Dron de MA, pendiente probar. Hacer alguna ñapa para la visión.
+    Control basado en mismo protocolo, solamente actualizar la ZUM (arduino)
+        Programa arduino, quitar escritura eeprom?
+
+Pendiente encapsular el PID, hacer clase PID que nos facilite su uso.
+
+PRUEBAS dron E010 sin corona. Detección por color Rojo, dirección con corchopán verde.
+    - (Sin butterworth, si que está activo el filtro de kalman del localizador)
+    PRUEBA 1: Control del dron a Throttle constante casi pegado al suelo (2D - Z cte):
+        Angulo, X e Y van bastante OK.
+
+    PRUEBA 2: Intento control de la Z:
+        Tras muchas pruebas veo algo medio decente utilizar un factor en el error de la Z para tener una actuacion distinta en subida y en bajada.
+            Cuando hay que corregir hacia abajo se reduce el error en un factor para reducir el throttle con menor intensidad.
+    Algunos datos de las matrices de records en un .pynb
+        * PENDIENTE DEJAR DIRECCION o adjuntar los pynb
+
+Visto problema videostream de imutils, añadida clase stream propia en rady_stream para cambiarle reso y fps.
+
+Filtro butterworth tras recibido del localizador mete 0,1 s de retardo en la señal filtrada (buffer 10).
+    Probar filtfilt en vez de dfilter? Penalizará procesamiento.
+
+El Parrot Mambo. Hay segunda mano casinuevos por 67 pavos en amazon, echar un ojete. Pero el programa de control es diferente.
+    Probar? Tengo placa que emite por bluetooth.
+
+Vistos en tamaño son gigantescos...
+
+Directorio de Arduino (C:\Users\usuario\Documents\Arduino) tenemos 3 libs de momento:
+    nRF24_multipro: Fork de la original. Tiene las mods para Serial, utilizandola para pruebas E010.
+    nRF24_frsky: Original (No serial, sino mod. posicion de pulso) NO HABLA CON FRSKY, tiene una mod de silverware para recibir telemetría.
+    nRF24_dustX58: NO HABLA CON DUSTX58. Simplemente he incluido los cambios en la Original por PPM en la versión por serie.
+        nRF24_rady: Partiendo de la anterior. Mods EEPROM. No seguro si funciona.
+    nRF24_partomatl:
+        original mods serie de partomatl
+
+
+El dron de MA usa otro protocolo. Nuestro dron usa un sub protocolo de MJX que esté implementado en la lib del nRF24l01
+    No podemos usar dicho modulo para comunicar con el dron de MA, es necesario el CC2500.
+    El DustX58 tiene un receptor de frsky, usa protocolo D8.
+        Tenemos librería chula que hace cosas con dicho protocolo y dicho chip, podriamos basarnos en esta para meterle capa envio comandos por serial y sacar los comandos rf:
+            https://github.com/pascallanger/DIY-Multiprotocol-TX-Module
+    * Pendiente igualmente hacer algo con la CC2500 e intentar controlar drones con este protocolo podría molar?
+
+Tenemos drones similares al nuestro en tamaño y con protocolos incorporados en la lib multipro, con más potencia en motores - mayores baterías
+    En teoría se comportan algo mejor y pueden llevar más peso (x. ej camara, disco identificación visión).
+        He pedido un par para probar: E011 y Bwhoop Pro (Bayang)
+            * Pendiente ver el binding y modificar la lib de arduino para iniciarlos.
+
+Protocolo Bayang:
+    seq. inicial: conectar arduino - encender el dron - lanzar programa para bindeo.
+
+Pruebas retardo camara con cable blanco: 10-14 ms. Similar a sin cable.
+
+##################
+    Knowdldg.
+##################
+
+Modos de vuelo tipicos drones:
+    https://www.dummies.com/consumer-electronics/drones/drone-flight-modes/
+
+Modo controller:
+    Modo 1: Nipón
+    Modo 2: Yankee (throttle a la izkierda)
+
+Clasificacion:
+    Micros: <~10cm - E010 E012HW...
+    Minis: ParrotMambo, DJI Tello, Xiaomi MiTu
+
+Modulación en RC:
+    https://www.dronetrest.com/t/rc-radio-control-protocols-explained-pwm-ppm-pcm-sbus-ibus-dsmx-dsm2/1357
+
+
+to DO:
+
+
+23/08/2018.
+    Conseguido control OK del dron, ajustaremos PIDs.

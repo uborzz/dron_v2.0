@@ -1,0 +1,9 @@
+1. Resize the captured image (width/4,height/4, this will reduce a lot of the noise and will speed up the processing time)
+2. Obtain the binary image with cvInRangeS (not with cvThreshold)
+3. Dilate the image a couple of times
+4. Use the functions that cvblobslib library provide to detect blobs, filter small blobs and so on... (you can find sample code on how to do that)
+5. Draw a rectangle around the biggest blob on the original image(taking in consideration the resizing factor)
+
+--
+
+Nada, lo hacemos a nuestro rollo - Con contours y blobs
