@@ -74,18 +74,47 @@ class Dron():
 
     def turn_motor_OFF(self):
         pass
+    #
+    # def calibrate(self):
+    #     command = "0,1000,1000,500"
+    #     self.send_command(command)
+    #
+    # def calibrate2(self):
+    #     command = "2000,1500,1500,1500"
+    #     self.send_command(command)
+    #     time.sleep(0.3)
+    #     command = "1000,1500,1500,1500"
+    #     self.send_command(command)
+    #     time.sleep(0.3)
 
+    def abajoizquierda(self):
+        command = "1000,1000,1000,1000"
+        self.send_command(command)
+
+
+    def abajoderecha(self):
+        command = "1000,2000,1000,2000"
+        self.send_command(command)
+
+    def neutro(self):
+        command = "1000,1500,1500,1500"
+        self.send_command(command)
+
+    # BWHOOP == abajoderecha
     def calibrate(self):
-        command = "0,1000,1000,500"
+        command = "1000,2000,1000,2000"
         self.send_command(command)
 
+    # BWHOOP
     def calibrate2(self):
-        command = "2000,1500,1500,1500"
+        command = "1000,2000,1000,2000"
         self.send_command(command)
         time.sleep(0.3)
-        command = "0,1500,1500,1500"
+        command = "1000,1000,1000,1000"
         self.send_command(command)
         time.sleep(0.3)
+        command = "1000,1500,1500,1500"
+        self.send_command(command)
 
     def envia_canal_valor(self, canal, valor):
         lista = [0] * canal

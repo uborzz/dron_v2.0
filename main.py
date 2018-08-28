@@ -92,6 +92,8 @@ zRecord = []
 zFilteredRecord = []
 angleRecord = []
 angleFilteredRecord = []
+angleMovidoRecord = []
+angleTuneadoRecord = []
 xErrorRecord = []
 yErrorRecord = []
 zErrorRecord = []
@@ -135,7 +137,7 @@ throttle_off = 1000
 midron = dron.Dron("COM6")
 
 info = True
-locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=info)
+locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
 
 
 def windup():
@@ -377,6 +379,9 @@ def tracking():
     timer_fps = datetime.now() # guarda tiempo de ultimo procesamiento.
     micros_para_procesar = timedelta(microseconds=int(1000000 / fps))
 
+    # provisional:
+    anguloPrevio = None
+
     while True:
 
         toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
@@ -441,15 +446,22 @@ def tracking():
             midron.calibrate2()
         elif k == ord('x'):
             midron.calibrate()
+        elif k == ord('b'):
+            midron.abajoizquierda()
+        elif k == ord('m'):
+            midron.abajoderecha()
+        elif k == ord('n'):
+            midron.neutro()
         elif k == ord('z'):
             # midron.send_command("1500,1700,1470,1500,0,0,0,1")
-            midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,2000")
-            time.sleep(0.1)
-            lectura = midron.port.read(2000)
+            midron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
+            time.sleep(0.05)
+            lectura = midron.port.read(1000)
             print("Lectura INIT enviado: ", lectura)
             # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-            time.sleep(5)
             midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+            # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
+            time.sleep(4)
             lectura = midron.port.read(1000)
             print("Saliendo INIT: ", lectura)
             # time.sleep(1)
@@ -502,18 +514,38 @@ def tracking():
             zDroneFiltered = zFiltered[-1]
             zFilteredRecord.append(zDroneFiltered)
 
+            # Tuneo medida leida angulo
+            if anguloPrevio:  # Previo y filtrado son el mismo valor. anguloPrevio y angleDroneFiltered
+                while (angleDrone - anguloPrevio) >= 180:
+                    angleDrone -= 360
+                while (angleDrone - anguloPrevio) <= -180:
+                    angleDrone += 360
+            angleMovidoRecord.append(angleDrone)
+
             # filter angle
             # angleFiltered = lfilter(b, a, angleRecord)
-            angleFiltered = lfilter(ba, aa, angleRecord[-buff:])
+            angleFiltered = lfilter(ba, aa, angleMovidoRecord[-buff:])
             angleDroneFiltered = angleFiltered[-1]
+            anguloPrevio = int(angleDroneFiltered)
             angleFilteredRecord.append(angleDroneFiltered)
 
+            angleDroneFilteredTuneado = int(anguloPrevio)
+            while angleDroneFilteredTuneado >= 360:
+                angleDroneFilteredTuneado -= 360
+            while angleDroneFilteredTuneado < 0:
+                angleDroneFilteredTuneado += 360
+
+            angleTuneadoRecord.append(angleDroneFilteredTuneado)
+
+
         else:
+            angleMovidoRecord.append(angleDrone)
+            angleTuneadoRecord.append(angleDrone)
             xFilteredRecord.append(xDrone)
             yFilteredRecord.append(yDrone)
             zFilteredRecord.append(zDrone)
             angleFilteredRecord.append(angleDrone)
-            xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFiltered = xDrone, yDrone, zDrone, angleDrone
+            xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado = xDrone, yDrone, zDrone, angleDrone
         # implement a PID controller
 
         # store previous errors in position (cm) and angle (degrees) (to compute variation of error)
@@ -537,7 +569,7 @@ def tracking():
         xError = xTarget[ii] - xDroneFiltered
         yError = yTarget[ii] - yDroneFiltered
         zError = zTarget[ii] - zDroneFiltered
-        angleError = angleTarget[ii] - angleDrone#Filtered
+        angleError = angleTarget[ii] - angleDroneFilteredTuneado   # Pruebas angulos!!
 
         # Trucar gravedad intento 1:
         if zError < 0 and correccion_gravedad > 0: zError /= correccion_gravedad
@@ -692,7 +724,9 @@ def main():
     scipy.io.savemat(nombre_fichero,
                      mdict={'time': timeRecord, 'x': xRecord, 'xFiltered': xFilteredRecord, 'y': yRecord,
                             'yFiltered': yFilteredRecord, 'z': zRecord, 'zFiltered': zFilteredRecord,
-                            'angle': angleRecord, 'angleFiltered': angleFilteredRecord, 'xError': xErrorRecord,
+                            'angle': angleRecord, 'angleFiltered': angleFilteredRecord,
+                            'angleMovido': angleMovidoRecord, 'angleTuneado': angleTuneadoRecord,
+                            'xError': xErrorRecord,
                             'yError': yErrorRecord, 'zError': zErrorRecord, 'angleError': angleErrorRecord,
                             'aileron': aileronRecord, 'elevator': elevatorRecord, 'throttle': throttleRecord,
                             'rudder': rudderRecord})

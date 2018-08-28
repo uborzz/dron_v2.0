@@ -65,7 +65,7 @@ Tenemos drones similares al nuestro en tamaño y con protocolos incorporados en 
 Protocolo Bayang:
     seq. inicial: conectar arduino - encender el dron - lanzar programa para bindeo.
 
-Pruebas retardo camara con cable blanco: 10-14 ms. Similar a sin cable.
+Pruebas retardo camara con cable blanco: 100-140 ms. Similar a sin cable.
 
 ##################
     Knowdldg.
