@@ -2,22 +2,22 @@
     "bias": {
         "aileron": 1498,
         "correccion_gravedad": 20,
-        "elevator": 1519,
-        "rudder": 1504,
-        "throttle": 1424
+        "elevator": 1504,
+        "rudder": 1488,
+        "throttle": 1498
     },
     "pid": {
         "KDangle": 0,
-        "KDx": 22,
-        "KDy": 22,
-        "KDz": 15,
+        "KDx": 40,
+        "KDy": 40,
+        "KDz": 20,
         "KIangle": 0.0,
         "KIx": 0.01,
         "KIy": 0.01,
-        "KIz": 0.04,
-        "KPangle": 2,
-        "KPx": 0.53,
-        "KPy": 0.49,
+        "KIz": 0.05,
+        "KPangle": 1,
+        "KPx": 0.6,
+        "KPy": 0.6,
         "KPz": 7
     }
 }

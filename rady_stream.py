@@ -44,3 +44,7 @@ class Stream:
     def stop(self):
         # indicate that the thread should be stopped
         self.stopped = True
+
+    def menu_config(self):
+        # muestra menu configuracion params de la camara
+        self.stream.set(cv2.CAP_PROP_SETTINGS, 0)
