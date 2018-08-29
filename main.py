@@ -61,16 +61,20 @@ frame = None
 hsv = None
 numero_click = 0
 
-# butterworth
+# butterworth X-Y
 order = 2  # second order filter
 fs = float(fps)  # sampling frequency is around 30 Hz
 nyq = 0.5 * fs
-lowcut = 1  # cutoff frequency at 2 Hz
+lowcut = 1.1  # cutoff frequency at 1 Hz
 low = lowcut / nyq
-low_angle = 0.3 / nyq
+low_angle = 1.8 / nyq  # cutoff freq at 3 Hz
 b, a, *_ = butter(order, [low], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
 ba, aa, *_ = butter(order, [low_angle], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
 print("B - A:", b, "-", a)
+
+
+# butterworth Z
+
 
 # params
 distancia_camara_suelo = 200
@@ -223,7 +227,8 @@ def click_clases(event, x, y, flags, param):
         print(x, y)
 
 
-        a = 180 + int(math.degrees(math.atan2(-(y - locator.coronaNaranja.y), x - locator.coronaNaranja.x)))
+        a = 180 + int(math.degrees(math.atan2(locator.coronaNaranja.x - x, locator.coronaNaranja.y - y)))
+        if a >= 360: a-=360
         cv2.setTrackbarPos("A Target", "target", a)
         print("target angulo:")
         print(a)
@@ -499,7 +504,7 @@ def tracking():
         angleRecord.append(angleDrone)
 
         # filter y
-        buff = 30
+        buff = fps
         if len(xRecord) >= buff:
             xFiltered = filtfilt(b, a, xRecord[-buff:])
             xDroneFiltered = xFiltered[-1]
@@ -516,7 +521,7 @@ def tracking():
 
             # Tuneo medida leida angulo
             if anguloPrevio:  # Previo y filtrado son el mismo valor. anguloPrevio y angleDroneFiltered
-                while (angleDrone - anguloPrevio) >= 180:
+                while (angleDrone - anguloPrevio) > 180:
                     angleDrone -= 360
                 while (angleDrone - anguloPrevio) <= -180:
                     angleDrone += 360
@@ -524,7 +529,7 @@ def tracking():
 
             # filter angle
             # angleFiltered = lfilter(b, a, angleRecord)
-            angleFiltered = lfilter(ba, aa, angleMovidoRecord[-buff:])
+            angleFiltered = lfilter(ba, aa, angleMovidoRecord[-10:])    # a manota
             angleDroneFiltered = angleFiltered[-1]
             anguloPrevio = int(angleDroneFiltered)
             angleFilteredRecord.append(angleDroneFiltered)
@@ -536,7 +541,6 @@ def tracking():
                 angleDroneFilteredTuneado += 360
 
             angleTuneadoRecord.append(angleDroneFilteredTuneado)
-
 
         else:
             angleMovidoRecord.append(angleDrone)
@@ -565,6 +569,8 @@ def tracking():
         # zError = zTarget[ii] - zDrone#Filtered
         # angleError = angleTarget[ii] - angleDrone#Filtered
 
+
+        if info: print("[LEIDO FILTRADO]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado))
         # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
         xError = xTarget[ii] - xDroneFiltered
         yError = yTarget[ii] - yDroneFiltered
@@ -577,7 +583,7 @@ def tracking():
 
         # Fix angulo, xq no habré hecho to en radianes? U-.-
         if angleError > 180: angleError -= 360
-        elif angleError < -180: angleError += 360
+        elif angleError <= -180: angleError += 360
 
         ii += 1
 
@@ -601,7 +607,7 @@ def tracking():
         angleCommand = KPangle * angleError + KIangle * angleErrorI + KDangle * angleErrorD
 
         # print the X, Y, Z, angle commands
-        if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
+        # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
         # print("X:", str(xCommand))
 
         # throttle command is zCommand
@@ -610,16 +616,28 @@ def tracking():
 
         # angleDrone to radians for projection
 
+# -> Provisional
+        # ###############
         angleDir = 360 - 180 + math.atan2(xCommand, yCommand) / math.pi*180
         # angleDir = 360 - 180 + math.atan2(xError, yError) / math.pi*180   <- Buena!
-        angleMovRad = (angleDrone * np.pi / 180) - (angleDir * np.pi / 180)
+        angleMovRad = (angleDroneFilteredTuneado * np.pi / 180) - (angleDir * np.pi / 180)     # <- FILTRADO O LEIDO?? TUN TUN
         distMov = math.sqrt(xError**2 + yError**2)
-        print("ANGULO RELATIVO: " + str(angleMovRad / math.pi*180))
+        # ###############
+
+
+        # print("ANGULO RELATIVO: " + str(angleMovRad / math.pi*180))
 
         # project xCommand and yCommand on the axis of the drone
         # commands are relative to the middle PPM values
+
+# -> Provisional
+        # ###############
         elevatorCommand = elevator_middle - np.cos(angleMovRad) * distMov
         aileronCommand = aileron_middle - np.sin(angleMovRad) * distMov
+        # ###############
+        # elevatorCommand = elevator_middle - yCommand
+        # aileronCommand = aileron_middle + xCommand
+
         # elevatorCommand = elevator_middle - np.sin(angleMovRad) * xCommand + np.cos(angleMovRad) * yCommand
         # aileronCommand = aileron_middle - np.cos(angleMovRad) * xCommand - np.sin(angleMovRad) * yCommand
 
