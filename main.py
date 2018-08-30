@@ -12,6 +12,7 @@ from scipy.signal import butter, lfilter, filtfilt
 import json
 import math
 from rady_stream import Stream
+import rady_functions
 
 
 VUELA = False
@@ -31,25 +32,7 @@ fps_camera = 25 # a mano, fps de captura de la camara (va en otro hilo).
 # fps_camera = int(fps + fps*0.15)  # framerate de captura camara (camara la llevo a otro hilo) - Un poco mas alto que el sampleo
 # fps_envio  # A ojete tambien
 
-try:
-    raise("DESACTIVADO")
-    # Con la correccion ralentizamos un 15-20% másaswa
-    # Aprox. observado: 20 fps OK con corrección de la distorsiónq vs 24 fps OK sin corrección - en 640x480
-
-    # load the camera calibration parameters
-    calfile = np.load('calibration.npz')
-    newcameramtx = calfile['newcameramtx']
-    mtx = calfile['mtx']
-    dist = calfile['dist']
-    roi = calfile['roi']
-
-    map1, map2 = cv2.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (width, height), cv2.CV_32FC1)
-    undistort = True
-    print("Camera calibration params loaded")
-
-except:
-    undistort = False
-    print("WARNING: Going without camera calibration")
+undistort, map1, map2 = rady_functions.get_undistort_map()
 
 lower_blue = np.array([110,50,50])
 upper_blue = np.array([130,255,255])
