@@ -96,7 +96,7 @@ xErrorI, yErrorI, zErrorI, angleErrorI = 0, 0, 0, 0
 # xError_old, yError_old, zError_old, angleError_old = 0, 0, 0, 0
 
 # Lee Config BIAS y PID
-with open("config_E011.json", "r") as file:
+with open("config/config_E011.json", "r") as file:
     config_data = json.load(file)
     pid_data = config_data["pid"]
     bias_data = config_data["bias"]
@@ -250,31 +250,10 @@ def tracking():
     ii = 0 # variable para moverse por puntos path
 
     # mirror seleccionado?
-    mirror = True # realmente es ahora un ROTATE 180º
-
-    ##### Con VIDEOSTREAM de IMUTILS -> Solo tiene sentido con camara raspi, es una mierda
-    # cam = VideoStream(src=1, resolution=(width, height), framerate=fps).start()
+    rotate = True # realmente es ahora un ROTATE 180º
 
     cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
     # cam = Stream(src=2, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
-
-    ##### Con VIDEOCAPTURE A PELO.
-    # cam = cv2.VideoCapture(1)
-    # cam.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    # cam.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-    # cam.set(cv2.CAP_PROP_FPS, fps)
-    # cam = cv2.VideoCapture(1)
-    # cam.set(cv2.CAP_PROP_FRAME_WIDTH, res_w)
-    # cam.set(cv2.CAP_PROP_FRAME_HEIGHT, res_h)
-    # cam.set(cv2.CAP_PROP_FPS, fps)
-    # cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-    # cam.set(cv2.CAP_PROP_RECTIFICATION, 0)
-    # cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, 0)
-    # cam.set(cv2.CAP_PROP_WHITE_BALANCE_RED_V, 0)
-
-    # # Instancia el dron
-    # midron = dron.Dron("COM7")
-    # locator = localizador.Localizador()
 
     image_number = 1
 
@@ -390,7 +369,7 @@ def tracking():
         # print(frame)
 
         # Espejo si/no?
-        if mirror:
+        if rotate:
             frame = cv2.flip(frame, -1) # 0 eje x, 1 eje y. -1 ambos (rota 180).
 
         # Camara calibrada? Obtenemos la transformacion
@@ -710,8 +689,7 @@ class RingBuffer():
         return (self.data.mean())
 
 def main():
-    # show_webcam(640, 480, 30, mirror=True)
-    # faster_webcam(1)
+
     tracking()
 
     cv2.destroyAllWindows()

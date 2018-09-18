@@ -14,14 +14,14 @@ default values:
 # Python 2/3 compatibility
 from __future__ import print_function
 
-import numpy as np
-import cv2 as cv
-
-# local modules
-from common import splitfn
-
 # built-in modules
 import os
+
+import cv2 as cv
+import numpy as np
+
+# local modules
+from camera_calibration.common import splitfn
 
 if __name__ == '__main__':
     import sys

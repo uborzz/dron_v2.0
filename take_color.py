@@ -1,4 +1,3 @@
-
 import cv2
 from imutils.video import VideoStream
 from time import sleep
