@@ -1,4 +1,5 @@
 {
+    "name": "E011",
     "bias": {
         "aileron": 1498,
         "correccion_gravedad": 20,

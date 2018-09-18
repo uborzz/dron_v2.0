@@ -4,7 +4,6 @@ import sys
 import cv2
 import numpy as np
 import time
-import dron
 import localizador
 from datetime import datetime, timedelta
 import scipy.io
@@ -13,6 +12,8 @@ import json
 import math
 from rady_stream import Stream
 import rady_functions
+import globals as gb
+import dron
 
 
 VUELA = False
@@ -61,13 +62,14 @@ print("B - A:", b, "-", a)
 
 # params
 distancia_camara_suelo = 200
-refresca_params_flag = False
+gb.refresca_params_flag = False
+
 
 # hover
-xTarget = [320] # pixeles
-yTarget = [240] # pixeles
-zTarget = [20] # cm  # Pruebas corona hechas con Z 20
-angleTarget = [210] # grados
+gb.xTarget = 320 # pixeles
+gb.yTarget = 240 # pixeles
+gb.zTarget = 20 # cm  # Pruebas corona hechas con Z 20
+gb.angleTarget = 210 # grados
 
 # record everything
 timeRecord = []
@@ -95,6 +97,9 @@ xErrorI, yErrorI, zErrorI, angleErrorI = 0, 0, 0, 0
 # xErrorD, yErrorD, zErrorD, angleErrorD 3= 0, 0, 0, 0
 # xError_old, yError_old, zError_old, angleError_old = 0, 0, 0, 0
 
+
+
+
 # Lee Config BIAS y PID
 with open("config/config_E011.json", "r") as file:
     config_data = json.load(file)
@@ -102,18 +107,18 @@ with open("config/config_E011.json", "r") as file:
     bias_data = config_data["bias"]
 
 # define middle PPM values that make the drone hover
-throttle_middle = bias_data["throttle"]  # up (+) and down (-)  # 1660 con corona de 4 gramos
-aileron_middle = bias_data["aileron"]  # left (-) and right (+)
-elevator_middle = bias_data["elevator"]  # forward (+) and backward (-)
-rudder_middle = bias_data["rudder"]  # yaw left (-) and yaw right (+)
-correccion_gravedad = bias_data["correccion_gravedad"]
+gb.throttle_middle = bias_data["throttle"]  # up (+) and down (-)  # 1660 con corona de 4 gramos
+gb.aileron_middle = bias_data["aileron"]  # left (-) and right (+)
+gb.elevator_middle = bias_data["elevator"]  # forward (+) and backward (-)
+gb.rudder_middle = bias_data["rudder"]  # yaw left (-) and yaw right (+)
+gb.correccion_gravedad = bias_data["correccion_gravedad"]
 
-clamp_offset = 300
+gb.clamp_offset = 300
 
 # marcial PID INICIALES - pixeles (x-y) - cm (z) - degree (head)
-KPx, KPy, KPz, KPangle = pid_data["KPx"], pid_data["KPy"], pid_data["KPz"], pid_data["KPangle"]
-KIx, KIy, KIz, KIangle = pid_data["KIx"], pid_data["KIy"], pid_data["KIz"], pid_data["KIangle"]
-KDx, KDy, KDz, KDangle = pid_data["KDx"], pid_data["KDy"], pid_data["KDz"], pid_data["KDangle"]
+gb.KPx, gb.KPy, gb.KPz, gb.KPangle = pid_data["KPx"], pid_data["KPy"], pid_data["KPz"], pid_data["KPangle"]
+gb.KIx, gb.KIy, gb.KIz, gb.KIangle = pid_data["KIx"], pid_data["KIy"], pid_data["KIz"], pid_data["KIangle"]
+gb.KDx, gb.KDy, gb.KDz, gb.KDangle = pid_data["KDx"], pid_data["KDy"], pid_data["KDz"], pid_data["KDangle"]
 
 # define engines off PPM value for throttle
 throttle_off = 1000
@@ -121,7 +126,8 @@ throttle_off = 1000
 
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
-midron = dron.Dron("COM6")
+# midron = dron.Dron("COM6")
+midron = dron.create_dron("COM6", simulated=False)
 
 info = True
 locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
@@ -134,34 +140,6 @@ def windup():
 def windupXY():
     global xErrorI, yErrorI
     xErrorI, yErrorI = 0, 0
-
-def click(event,x,y,flags,param):
-
-    global frame
-    global hsv
-    global lower_blue
-    global upper_blue
-
-    # if event == cv2.EVENT_LBUTTONDOWN:
-    #     pass
-
-    if event == cv2.EVENT_LBUTTONUP:
-        print("Color picker!")
-        color = hsv[y,x]
-        print(color)
-
-        lower_blue = color.astype('int16') - 30
-        upper_blue = color.astype('int16') + 30
-        np.clip(lower_blue, 0, 255, out=lower_blue)
-        np.clip(upper_blue, 0, 255, out=upper_blue)
-        lower_blue[2] = 0
-        upper_blue[2] = 255
-        print("L" + str(lower_blue))
-        print("U" + str(upper_blue))
-
-
-        # cv2.rectangle(image, refPt[0], refPt[1], (0, 255, 0), 2)
-        # cv2.imshow("image", i
 
 
 def colorea(color = "blanco"):
@@ -186,7 +164,6 @@ def click_clases(event, x, y, flags, param):
     global hsv
 
     global numero_click
-    global xTarget, yTarget, angleTarget
 
     # if event == cv2.EVENT_LBUTTONDOWN:
     #     pass
@@ -202,9 +179,9 @@ def click_clases(event, x, y, flags, param):
 
         # Nuevos targets
 
-        # angleTarget = [np.degrees(np.arctan( (x - xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
-        xTarget = [x]  # pixeles
-        yTarget = [y]  # pixeles
+        # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
+        gb.xTarget = x  # pixeles
+        gb.yTarget = y  # pixeles
         windupXY()
         print("target point:")
         print(x, y)
@@ -215,20 +192,7 @@ def click_clases(event, x, y, flags, param):
         cv2.setTrackbarPos("A Target", "target", a)
         print("target angulo:")
         print(a)
-        #
-        # if numero_click == 0:
-        #     locator.circuloVerde.calculate_hsv_range(color, 30)
-        #     # locator.circuloVerde.set_range(lower, upper)
-        # elif numero_click == 1:
-        #     locator.circuloAmarillo.calculate_hsv_range(color, 30)
-        #     # locator.circuloAmarillo.set_range(lower, upper)
-        # elif numero_click == 2:
-        #     locator.coronaNaranja.calculate_hsv_range(color, 20)
-        #     # locator.coronaNaranja.set_range(lower, upper)
-        #
-        # numero_click += 1
-        # if numero_click >= 3:
-        #     numero_click = 0
+
 
 def tracking():
     global VUELA, SALVA
@@ -239,15 +203,9 @@ def tracking():
     global upper_blue
     global lower_blue
 
-    global KPx, KPy, KPz, KPangle, KIx, KIy, KIz, KIangle, KDx, KDy, KDz, KDangle
-    global refresca_params_flag
-    global throttle_middle, rudder_middle, aileron_middle, elevator_middle, correccion_gravedad, clamp_offset
-
     global xError, yError, zError, angleError
     global xErrorI, yErrorI, zErrorI, angleErrorI
 
-
-    ii = 0 # variable para moverse por puntos path
 
     # mirror seleccionado?
     rotate = True # realmente es ahora un ROTATE 180º
@@ -259,86 +217,18 @@ def tracking():
 
     # Lectura frames per second
     start = time.time()
-    buffer = RingBuffer(10)
+    buffer = rady_functions.RingBuffer(10)
     avg_fps = 0.0
     counter = 0
 
-    def refresca_params():
-        global refresca_params_flag
-        refresca_params_flag = False
-
-        global KPx, KPy, KPz, KPangle, KIx, KIy, KIz, KIangle, KDx, KDy, KDz, KDangle
-        global throttle_middle, rudder_middle, aileron_middle, elevator_middle, correccion_gravedad, clamp_offset
-
-        KPz = cv2.getTrackbarPos("KPZ", "control")
-        KIz = cv2.getTrackbarPos("KIZ", "control") / float(100)
-        KDz = cv2.getTrackbarPos("KDZ", "control")
-        throttle_middle = cv2.getTrackbarPos("BIASZ", "control")
-        correccion_gravedad = cv2.getTrackbarPos("CG", "control")
-
-        clamp_offset = cv2.getTrackbarPos("Clamp", "control")
-
-        KPx = cv2.getTrackbarPos("KPX", "control") / float(100)
-        KIx = cv2.getTrackbarPos("KIX", "control") / float(100)
-        KDx = cv2.getTrackbarPos("KDX", "control")
-        aileron_middle = cv2.getTrackbarPos("BIASAIL", "control")
-
-        KPy = cv2.getTrackbarPos("KPY", "control") / float(100)
-        KIy = cv2.getTrackbarPos("KIY", "control") / float(100)
-        KDy = cv2.getTrackbarPos("KDY", "control")
-        elevator_middle = cv2.getTrackbarPos("BIASELE", "control")
-
-        KPangle = cv2.getTrackbarPos("KPA", "control")
-        KIangle = cv2.getTrackbarPos("KIA", "control") / float(100)
-        KDangle = cv2.getTrackbarPos("KDA", "control")
-        rudder_middle = cv2.getTrackbarPos("BIASRUD", "control")
-
-
-
-    def nothing(value):
-        global refresca_params_flag
-        refresca_params_flag = True
-
-    def nothing_target():
-        pass
 
     # clicks
     cv2.namedWindow('frame gordo')
     cv2.setMouseCallback('frame gordo', click_clases)
 
 
-    # target
-    cv2.namedWindow('target')
-    cv2.resizeWindow('target', 300, 120)
-    cv2.createTrackbar('Z Target', 'target', 20, 50, nothing_target)
-    cv2.createTrackbar('A Target', 'target', 180, 360, nothing_target)
+    panels = rady_functions.ConfigPanels()
 
-
-    # trackbars
-    cv2.namedWindow('control')
-    cv2.resizeWindow('control', 400, 750)
-    cv2.createTrackbar('KPZ', 'control', KPz, 20, nothing)
-    cv2.createTrackbar('KIZ', 'control', int(KIz*100), 100, nothing)
-    cv2.createTrackbar('KDZ', 'control', KDz, 200, nothing)
-    cv2.createTrackbar('BIASZ', 'control', throttle_middle, 2000, nothing)
-    cv2.createTrackbar('CG', 'control', correccion_gravedad, 25, nothing)
-
-    cv2.createTrackbar('Clamp', 'control', clamp_offset, 500, nothing)
-
-    cv2.createTrackbar('KPX', 'control', int(KPx*100), 500, nothing)
-    cv2.createTrackbar('KIX', 'control', int(KIx*100), 100, nothing)
-    cv2.createTrackbar('KDX', 'control', KDx, 200, nothing)
-    cv2.createTrackbar('BIASAIL', 'control', aileron_middle, 2000, nothing)
-
-    cv2.createTrackbar('KPY', 'control', int(KPy*100), 500, nothing)
-    cv2.createTrackbar('KIY', 'control', int(KIy*100), 100, nothing)
-    cv2.createTrackbar('KDY', 'control', KDy, 200, nothing)
-    cv2.createTrackbar('BIASELE', 'control', elevator_middle, 2000, nothing)
-
-    cv2.createTrackbar('KPA', 'control', KPangle, 20, nothing)
-    cv2.createTrackbar('KIA', 'control', int(KIangle*100), 100, nothing)
-    cv2.createTrackbar('KDA', 'control', KDangle, 200, nothing)
-    cv2.createTrackbar('BIASRUD', 'control', rudder_middle, 2000, nothing)
 
     # cv2.createTrackbar("kk", "oo", 0, 179, nothing)
 
@@ -360,24 +250,23 @@ def tracking():
         timer = cv2.getTickCount()
         t_start = datetime.now()
 
-        if refresca_params_flag: refresca_params()
-        angleTarget[0] = cv2.getTrackbarPos("A Target", "target")
-        zTarget[0] = cv2.getTrackbarPos("Z Target", "target")
+        if gb.refresca_params_flag: panels.refresca_params()
+        gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
+        gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
 
         # _, frame = cam.read() # Con videoCapture a pelo
-        frame = cam.read() # Con VIDEOSTREAM de IMUTILS
+        frame = cam.read() # Con VIDEOSTREAM
         # print(frame)
 
-        # Espejo si/no?
+        # Espejo/rotate si/no?
         if rotate:
             frame = cv2.flip(frame, -1) # 0 eje x, 1 eje y. -1 ambos (rota 180).
 
         # Camara calibrada? Obtenemos la transformacion
         if undistort:
-            # cropea el frame unudistorted
             undistorted = cv2.remap(frame, map1, map2, cv2.INTER_LINEAR)
             x, y, w, h = roi
-            frame = undistorted[y:y + h, x:x + w]
+            frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
 
         # SCALE DOWN
         # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
@@ -457,7 +346,7 @@ def tracking():
 
         # else frames without drone:
         #
-
+        print(gb.KPz)
 
         # record the position and orientation
         xRecord.append(xDrone)
@@ -520,34 +409,21 @@ def tracking():
         zError_old = zError
         angleError_old = angleError
 
-        # compute errors in position (cm) and angle (degrees) (P)
-        # compute errors wrt filtered measurements
-        if ii == len(xTarget):
-            ii = 0
-
-        # # PRUEBAS SIN FILTRO BUTTERWORTH (tenemos FILTRO DE KALMAN en la visión)
-        # xError = xTarget[ii] - xDrone#Filtered
-        # yError = yTarget[ii] - yDrone#Filtered
-        # zError = zTarget[ii] - zDrone#Filtered
-        # angleError = angleTarget[ii] - angleDrone#Filtered
-
 
         if info: print("[LEIDO FILTRADO]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado))
         # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
-        xError = xTarget[ii] - xDroneFiltered
-        yError = yTarget[ii] - yDroneFiltered
-        zError = zTarget[ii] - zDroneFiltered
-        angleError = angleTarget[ii] - angleDroneFilteredTuneado   # Pruebas angulos!!
+        xError = gb.xTarget - xDroneFiltered
+        yError = gb.yTarget - yDroneFiltered
+        zError = gb.zTarget - zDroneFiltered
+        angleError = gb.angleTarget - angleDroneFilteredTuneado   # Pruebas angulos!!
 
         # Trucar gravedad intento 1:
-        if zError < 0 and correccion_gravedad > 0: zError /= correccion_gravedad
+        if zError < 0 and gb.correccion_gravedad > 0: zError /= gb.correccion_gravedad
         # if zError < 0: print(zError)
 
         # Fix angulo, xq no habré hecho to en radianes? U-.-
         if angleError > 180: angleError -= 360
         elif angleError <= -180: angleError += 360
-
-        ii += 1
 
         # compute integral (sum) of errors (I)
         # should design an anti windup for z
@@ -563,10 +439,10 @@ def tracking():
         angleErrorD = angleError - angleError_old
 
         # compute commands
-        xCommand = KPx * xError + KIx * xErrorI + KDx * xErrorD
-        yCommand = KPy * yError + KIy * yErrorI + KDy * yErrorD
-        zCommand = KPz * zError + KIz * zErrorI + KDz * zErrorD
-        angleCommand = KPangle * angleError + KIangle * angleErrorI + KDangle * angleErrorD
+        xCommand = gb.KPx * xError + gb.KIx * xErrorI + gb.KDx * xErrorD
+        yCommand = gb.KPy * yError + gb.KIy * yErrorI + gb.KDy * yErrorD
+        zCommand = gb.KPz * zError + gb.KIz * zErrorI + gb.KDz * zErrorD
+        angleCommand = gb.KPangle * angleError + gb.KIangle * angleErrorI + gb.KDangle * angleErrorD
 
         # print the X, Y, Z, angle commands
         # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
@@ -574,7 +450,7 @@ def tracking():
 
         # throttle command is zCommand
         # commands are relative to the middle PPM values
-        throttleCommand = throttle_middle + zCommand
+        throttleCommand = gb.throttle_middle + zCommand
 
         # angleDrone to radians for projection
 
@@ -594,8 +470,8 @@ def tracking():
 
 # -> Provisional
         # ###############
-        elevatorCommand = elevator_middle - np.cos(angleMovRad) * distMov
-        aileronCommand = aileron_middle - np.sin(angleMovRad) * distMov
+        elevatorCommand = gb.elevator_middle - np.cos(angleMovRad) * distMov
+        aileronCommand = gb.aileron_middle - np.sin(angleMovRad) * distMov
         # ###############
         # elevatorCommand = elevator_middle - yCommand
         # aileronCommand = aileron_middle + xCommand
@@ -605,17 +481,17 @@ def tracking():
 
         # rudder command is angleCommand
         # commands are relative to the middle PPM values
-        rudderCommand = rudder_middle - angleCommand
+        rudderCommand = gb.rudder_middle - angleCommand
 
         # round and clamp the commands to [1000, 2000] us (limits for PPM values)
         # clamp_offset = 100
-        throttleCommand = round(clamp(throttleCommand, throttle_middle-clamp_offset, throttle_middle+clamp_offset))
+        throttleCommand = round(clamp(throttleCommand, gb.throttle_middle-gb.clamp_offset, gb.throttle_middle+gb.clamp_offset))
         throttleCommand = round(clamp(throttleCommand, 1000, 2000))
-        aileronCommand = round(clamp(aileronCommand, aileron_middle-clamp_offset, aileron_middle+clamp_offset))
+        aileronCommand = round(clamp(aileronCommand, gb.aileron_middle-gb.clamp_offset, gb.aileron_middle+gb.clamp_offset))
         aileronCommand = round(clamp(aileronCommand, 1000, 2000))
-        elevatorCommand = round(clamp(elevatorCommand, elevator_middle-clamp_offset, elevator_middle+clamp_offset))
+        elevatorCommand = round(clamp(elevatorCommand, gb.elevator_middle-gb.clamp_offset, gb.elevator_middle+gb.clamp_offset))
         elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
-        rudderCommand = round(clamp(rudderCommand, rudder_middle-clamp_offset, rudder_middle+clamp_offset))
+        rudderCommand = round(clamp(rudderCommand, gb.rudder_middle-gb.clamp_offset, gb.rudder_middle+gb.clamp_offset))
         rudderCommand = round(clamp(rudderCommand, 1000, 2000))
 
         # create the command to send to Arduino
@@ -628,7 +504,6 @@ def tracking():
         if VUELA: midron.send_command(command)
         # if VUELA: midron.set_command(command)
         # print("SE ENVIAN COMANDOS!!!")
-
 
         # record everything
         timerStop = datetime.now() - timerStart
@@ -658,35 +533,15 @@ def tracking():
         cv2.putText(frame, "T_FRAME: " + str(ms_frame), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("verde"), 1)
 
         # Target POINT
-        cv2.putText(frame, "X: " + str(xTarget), (530, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "Y: " + str(yTarget), (530, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "Z: " + str(zTarget), (530, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "H: " + str(angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.circle(frame, (xTarget[0], yTarget[0]), 3, colorea("azul"), -1)
+        cv2.putText(frame, "X: " + str(gb.xTarget), (530, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
+        cv2.putText(frame, "Y: " + str(gb.yTarget), (530, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
+        cv2.putText(frame, "Z: " + str(gb.zTarget), (530, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
+        cv2.putText(frame, "H: " + str(gb.angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
+        cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, colorea("azul"), -1)
 
         cv2.imshow('frame gordo', frame)
 
 
-class RingBuffer():
-    "A 1D ring buffer using numpy arrays"
-    def __init__(self, length):
-        self.length = length
-        self.data = np.zeros(length, dtype='f')
-        self.index = 0
-
-    def extend(self, x):
-        "adds array x to ring buffer"
-        x_index = (self.index + np.arange(1)) % self.data.size
-        self.data[x_index] = x
-        self.index = x_index[-1] + 1
-
-    def get(self):
-        "Returns the first-in-first-out data in the ring buffer"
-        idx = (self.index + np.arange(self.data.size)) % self.data.size
-        return self.data[idx]
-
-    def mean(self):
-        return (self.data.mean())
 
 def main():
 
@@ -718,14 +573,14 @@ def main():
     if SALVA:
         config_data = dict()
         pid_data = {
-            "KPx" : KPx, "KPy": KPy, "KPz": KPz, "KPangle": KPangle,
-            "KDx": KDx, "KDy": KDy, "KDz": KDz, "KDangle": KDangle,
-            "KIx": KIx, "KIy": KIy, "KIz": KIz, "KIangle": KIangle,
+            "KPx" : gb.KPx, "KPy": gb.KPy, "KPz": gb.KPz, "KPangle": gb.KPangle,
+            "KDx": gb.KDx, "KDy": gb.KDy, "KDz": gb.KDz, "KDangle": gb.KDangle,
+            "KIx": gb.KIx, "KIy": gb.KIy, "KIz": gb.KIz, "KIangle": gb.KIangle,
         }
         bias_data = {
-            "throttle": throttle_middle, "rudder": rudder_middle,
-            "aileron": aileron_middle, "elevator": elevator_middle,
-            "correccion_gravedad": correccion_gravedad
+            "throttle": gb.throttle_middle, "rudder": gb.rudder_middle,
+            "aileron": gb.aileron_middle, "elevator": gb.elevator_middle,
+            "correccion_gravedad": gb.correccion_gravedad
         }
         config_data["pid"] = pid_data
         config_data["bias"] = bias_data

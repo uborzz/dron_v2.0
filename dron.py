@@ -1,15 +1,17 @@
 import serial
 import PID as pid
-import threading
-import cv2
 import time
 
 class Dron():
 
-    def __init__(self, serial_port):
+    def __init__(self, serial_port, simulated=False):
         baud_rate = 115200
         self.serial_port_name = serial_port
-        self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
+        self.port = None
+        self.simulated = simulated
+        if not self.simulated:
+            self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
+
         self.set_mode("ONGROUND")
         self.motor_on = False
         self.drone_properties = "drone.config"
@@ -136,7 +138,8 @@ class Dron():
         self.write(text + "\r\n")
 
     def write(self, text):
-        e = self.port.write(text.encode('ascii'))
+        if not self.simulated:
+            e = self.port.write(text.encode('ascii'))
         # serial_line = self.port.read(2000)
         # print(serial_line)
         self.prueba_arduino_envios += 1
@@ -162,4 +165,13 @@ class Dron():
         self.port.close()
         self.port = serial.Serial(self.serial_port_name, 115200, timeout=.01)
         self.port.close()
+
+def create_dron(port, simulated=False):
+    global midron
+    midron = Dron(port, simulated)
+    return take_dron()
+
+def take_dron():
+    global midron
+    return midron
 
