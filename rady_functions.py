@@ -1,6 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import cv2
 import globals as gb
+import scipy.io
+
 
 def get_undistort_map():
     try:
@@ -20,11 +24,15 @@ def get_undistort_map():
         print("Camera calibration params loaded")
 
     except:
-        map1, map2 = None, None
+        map1, map2, roi = None, None, None
         undistort = False
         print("WARNING: Going without camera calibration")
 
-    return undistort, map1, map2
+    return undistort, map1, map2, roi
+
+
+def clamp(n, minimum, maximum):
+    return max(min(maximum, n), minimum)
 
 
 class RingBuffer():
@@ -47,6 +55,17 @@ class RingBuffer():
 
     def mean(self):
         return (self.data.mean())
+
+
+def tupla_BGR(color = "blanco"):
+    if color == "verde":            res = (0, 255, 0)
+    elif color == "cyan":           res = (255, 255, 0)
+    elif color == "amarillo":       res = (0, 255, 255)
+    elif color == "azul":           res = (255, 0, 0)
+    elif color == "rojo":           res = (0, 0, 255)
+    elif color == "negro":          res = (0,0,0)
+    else:                           res = (255, 255, 255)  # blanco
+    return res
 
 
 class ConfigPanels():
@@ -124,3 +143,108 @@ class ConfigPanels():
         gb.KIangle = cv2.getTrackbarPos("KIA", "control") / float(100)
         gb.KDangle = cv2.getTrackbarPos("KDA", "control")
         gb.rudder_middle = cv2.getTrackbarPos("BIASRUD", "control")
+
+
+class Recorder(object):
+    # Guarda info pasada de las posiciones, errores y demás.
+    __instance = None
+
+    def __new__(cls):
+        if cls.__instance == None:
+            cls.__instance = object.__new__(cls)
+            cls.__instance.initialize()
+        return cls.__instance
+
+    def initialize(self):
+        # record everything
+        self.fps = None
+        self.timeRecord = []
+        self.xRecord = []
+        self.xFilteredRecord = []
+        self.yRecord = []
+        self.yFilteredRecord = []
+        self.zRecord = []
+        self.zFilteredRecord = []
+        self.angleRecord = []
+        self.angleFilteredRecord = []
+        self.angleMovidoRecord = []
+        self.angleTuneadoRecord = []
+        self.xErrorRecord = []
+        self.yErrorRecord = []
+        self.zErrorRecord = []
+        self.angleErrorRecord = []
+        self.aileronRecord = []
+        self.elevatorRecord = []
+        self.throttleRecord = []
+        self.rudderRecord = []
+
+    def configure(self, identificador, fps=None):
+        self.fps = fps
+        self.identificador = identificador
+
+    def save_position(self, x, y, z, a):
+        self.xRecord.append(x)
+        self.yRecord.append(y)
+        self.zRecord.append(z)
+        self.angleRecord.append(a)
+
+    def save_filtered_positions(self, x, y, z, a):
+        self.xFilteredRecord.append(x)
+        self.yFilteredRecord.append(y)
+        self.zFilteredRecord.append(z)
+        self.angleTuneadoRecord.append(a)
+
+    def save_debug(self, angulo_movido, angulo_filtrado_raw):
+        self.angleMovidoRecord.append(angulo_movido)
+        self.angleFilteredRecord.append(angulo_filtrado_raw)
+
+    def save_errors(self, x, y, z, a):
+        self.xErrorRecord.append(x)
+        self.yErrorRecord.append(y)
+        self.zErrorRecord.append(z)
+        self.angleErrorRecord.append(a)
+
+    def save_commands(self, ele, ail, thr, rud):
+        self.elevatorRecord.append(ele)
+        self.aileronRecord.append(ail)
+        self.throttleRecord.append(thr)
+        self.rudderRecord.append(rud)
+
+    def save_time(self, t):
+        self.timeRecord.append(t)
+
+    def dump_to_file(self):
+        nombre_fichero = 'recordings/recording' + self.identificador + '.mat'
+        scipy.io.savemat(nombre_fichero,
+                     mdict={'time': self.timeRecord, 'x': self.xRecord, 'xFiltered': self.xFilteredRecord,
+                            'y': self.yRecord, 'yFiltered': self.yFilteredRecord, 'z': self.zRecord,
+                            'zFiltered': self.zFilteredRecord, 'angle': self.angleRecord,
+                            'angleFiltered': self.angleFilteredRecord, 'angleMovido': self.angleMovidoRecord,
+                            'angleTuneado': self.angleTuneadoRecord, 'xError': self.xErrorRecord,
+                            'yError': self.yErrorRecord, 'zError': self.zErrorRecord,
+                            'angleError': self.angleErrorRecord, 'aileron': self.aileronRecord,
+                            'elevator': self.elevatorRecord, 'throttle': self.throttleRecord,
+                            'rudder': self.rudderRecord})
+        if self.fps:
+            diffs = np.ediff1d(self.timeRecord)
+            tiempos = [sum(diffs[v * self.fps:(v * self.fps) + self.fps]) for v in range(int(diffs.shape[0] / self.fps))]
+            print(tiempos)
+            print(np.mean(tiempos))
+        print("Fichero guardado con recordings: ", nombre_fichero)
+
+
+def pinta_informacion_en_frame(frame, fps=None, t_frame=None):
+    # CURRENT INFO
+    cv2.putText(frame, "X: " + str(gb.x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(frame, "Y: " + str(gb.y), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(frame, "Z: " + str(int(gb.z)), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(frame, "H: " + str(gb.head), (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    # if fps: cv2.putText(frame, "FPS: " + str(fps_display), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"), 1)
+    if t_frame: cv2.putText(frame, "T_FRAME: " + str(t_frame), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"), 1)
+
+    # Target POINT
+    cv2.putText(frame, "X: " + str(gb.xTarget), (530, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(frame, "Y: " + str(gb.yTarget), (530, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(frame, "Z: " + str(gb.zTarget), (530, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(frame, "H: " + str(gb.angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, tupla_BGR("azul"), -1)
