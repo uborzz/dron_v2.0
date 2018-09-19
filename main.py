@@ -6,14 +6,13 @@ import numpy as np
 import time
 import localizador
 from datetime import datetime, timedelta
-import scipy.io
-from scipy.signal import butter, lfilter, filtfilt
 import json
 import math
 from rady_stream import Stream
-import rady_functions
+import rady_functions as rfs
 import globals as gb
 import dron
+from controller import Controller
 
 
 VUELA = False
@@ -26,14 +25,13 @@ print("OpenCV Version: " + cv2.__version__)
 print("Numpy Version: " + np.__version__)
 
 # Resolution
-width = 640
-height = 480
-fps = 20  # Sampleo de imagenes. - Ajustado a ojímetro para el tiempo de procesamiento
+width, height = 640, 480
+gb.fps = 20  # Sampleo de imagenes. - Ajustado a ojímetro para el tiempo de procesamiento
 fps_camera = 25 # a mano, fps de captura de la camara (va en otro hilo).
 # fps_camera = int(fps + fps*0.15)  # framerate de captura camara (camara la llevo a otro hilo) - Un poco mas alto que el sampleo
-# fps_envio  # A ojete tambien
 
-undistort, map1, map2 = rady_functions.get_undistort_map()
+
+undistort, map1, map2, roi = rfs.get_undistort_map()
 
 lower_blue = np.array([110,50,50])
 upper_blue = np.array([130,255,255])
@@ -45,16 +43,18 @@ frame = None
 hsv = None
 numero_click = 0
 
-# butterworth X-Y
-order = 2  # second order filter
-fs = float(fps)  # sampling frequency is around 30 Hz
-nyq = 0.5 * fs
-lowcut = 1.1  # cutoff frequency at 1 Hz
-low = lowcut / nyq
-low_angle = 1.8 / nyq  # cutoff freq at 3 Hz
-b, a, *_ = butter(order, [low], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
-ba, aa, *_ = butter(order, [low_angle], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
-print("B - A:", b, "-", a)
+
+
+                    # # butterworth X-Y
+                    # order = 2  # second order filter
+                    # fs = float(fps)  # sampling frequency is around 30 Hz
+                    # nyq = 0.5 * fs
+                    # lowcut = 1.1  # cutoff frequency at 1 Hz
+                    # low = lowcut / nyq
+                    # low_angle = 1.8 / nyq  # cutoff freq at 3 Hz
+                    # b, a, *_ = butter(order, [low], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
+                    # ba, aa, *_ = butter(order, [low_angle], btype='lowpass', output='ba') # tiro en _ para evitar intellisense highlight
+                    # print("B - A:", b, "-", a)
 
 
 # butterworth Z
@@ -71,40 +71,15 @@ gb.yTarget = 240 # pixeles
 gb.zTarget = 20 # cm  # Pruebas corona hechas con Z 20
 gb.angleTarget = 210 # grados
 
-# record everything
-timeRecord = []
-xRecord = []
-xFilteredRecord = []
-yRecord = []
-yFilteredRecord = []
-zRecord = []
-zFilteredRecord = []
-angleRecord = []
-angleFilteredRecord = []
-angleMovidoRecord = []
-angleTuneadoRecord = []
-xErrorRecord = []
-yErrorRecord = []
-zErrorRecord = []
-angleErrorRecord = []
-aileronRecord = []
-elevatorRecord = []
-throttleRecord = []
-rudderRecord = []
 
-xError, yError, zError, angleError = 0, 0, 0, 0
-xErrorI, yErrorI, zErrorI, angleErrorI = 0, 0, 0, 0
-# xErrorD, yErrorD, zErrorD, angleErrorD 3= 0, 0, 0, 0
-# xError_old, yError_old, zError_old, angleError_old = 0, 0, 0, 0
-
-
-
+recorder = rfs.Recorder()
+recorder.configure(identificador=timestamp, fps=gb.fps)
 
 # Lee Config BIAS y PID
 with open("config/config_E011.json", "r") as file:
     config_data = json.load(file)
-    pid_data = config_data["pid"]
-    bias_data = config_data["bias"]
+pid_data = config_data["pid"]
+bias_data = config_data["bias"]
 
 # define middle PPM values that make the drone hover
 gb.throttle_middle = bias_data["throttle"]  # up (+) and down (-)  # 1660 con corona de 4 gramos
@@ -124,10 +99,13 @@ gb.KDx, gb.KDy, gb.KDz, gb.KDangle = pid_data["KDx"], pid_data["KDy"], pid_data[
 throttle_off = 1000
 
 
+
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
 midron = dron.create_dron("COM6", simulated=False)
+controller = Controller()
+controller.initialize_general()
 
 info = True
 locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
@@ -140,22 +118,6 @@ def windup():
 def windupXY():
     global xErrorI, yErrorI
     xErrorI, yErrorI = 0, 0
-
-
-def colorea(color = "blanco"):
-    if color == "verde":            res = (0, 255, 0)
-    elif color == "cyan":           res = (255, 255, 0)
-    elif color == "amarillo":       res = (0, 255, 255)
-    elif color == "azul":           res = (255, 0, 0)
-    elif color == "rojo":           res = (0, 0, 255)
-    elif color == "negro":          res = (0,0,0)
-    else:                           res = (255, 255, 255)  # blanco
-    return res
-
-
-# define a clamping function
-def clamp(n, minimum, maximum):
-    return max(min(maximum, n), minimum)
 
 
 def click_clases(event, x, y, flags, param):
@@ -209,17 +171,16 @@ def tracking():
 
     # mirror seleccionado?
     rotate = True # realmente es ahora un ROTATE 180º
-
     cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
     # cam = Stream(src=2, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
 
-    image_number = 1
 
-    # Lectura frames per second
-    start = time.time()
-    buffer = rady_functions.RingBuffer(10)
-    avg_fps = 0.0
-    counter = 0
+    # # DESACTIVADO PROVISIONAL...
+    # # Lectura frames per second
+    # start = time.time()
+    # buffer = rfs.RingBuffer(10)
+    # avg_fps = 0.0
+    # counter = 0
 
 
     # clicks
@@ -227,17 +188,15 @@ def tracking():
     cv2.setMouseCallback('frame gordo', click_clases)
 
 
-    panels = rady_functions.ConfigPanels()
+    panels = rfs.ConfigPanels()
 
 
     # cv2.createTrackbar("kk", "oo", 0, 179, nothing)
 
-    timerStart = datetime.now()
+    gb.timerStart = datetime.now()
     timer_fps = datetime.now() # guarda tiempo de ultimo procesamiento.
-    micros_para_procesar = timedelta(microseconds=int(1000000 / fps))
+    micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
-    # provisional:
-    anguloPrevio = None
 
     while True:
 
@@ -255,12 +214,10 @@ def tracking():
         gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
 
         # _, frame = cam.read() # Con videoCapture a pelo
-        frame = cam.read() # Con VIDEOSTREAM
-        # print(frame)
+        frame = cam.read() # Con STREAM
 
         # Espejo/rotate si/no?
-        if rotate:
-            frame = cv2.flip(frame, -1) # 0 eje x, 1 eje y. -1 ambos (rota 180).
+        if rotate: frame = cv2.flip(frame, -1) # 0 eje x, 1 eje y. -1 ambos (rota 180).
 
         # Camara calibrada? Obtenemos la transformacion
         if undistort:
@@ -333,212 +290,180 @@ def tracking():
         #     # time.sleep(1)
 
         # Aislar...
-        x, y, z, head = locator.posicion_dron(frame)
-        # Coger var que indice OK - NOK, o grado de OK del dorn.
+        gb.x, gb.y, gb.z, gb.head = locator.posicion_dron(frame)  # asignar a clase dron su localizador seria lo suyo.
+        # Coger var que indike OK - NOK, o grado de OK del dron.
 
-        if datetime.now() - timerStart <= timedelta(seconds=2):
+        if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
-        ## CONTROL A PELO - Hover - (?) - Pruebas
 
-        # if dron esta visto oK:
-        xDrone, yDrone, zDrone, angleDrone = x, y, z, head
+        # if dron está visto OK:
+        throttle, aileron, elevator, rudder = controller.control()
 
-        # else frames without drone:
-        #
-        print(gb.KPz)
+                #
+                #         # if dron esta visto oK:
+                #         xDrone, yDrone, zDrone, angleDrone = x, y, z, head
+                #
+                #
+                #         # ##########################
+                #         # Filtros y PID control
+                #
+                #         # record the position and orientation
+                #         recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
+                #
+                #         # filter y
+                #         buff = fps
+                #         if len(recorder.xRecord) >= buff:
+                #             xFiltered = filtfilt(b, a, recorder.xRecord[-buff:])
+                #             xDroneFiltered = xFiltered[-1]
+                #                     # xFilteredRecord.append(xDroneFiltered)
+                #             yFiltered = filtfilt(b, a, recorder.yRecord[-buff:])
+                #             yDroneFiltered = yFiltered[-1]
+                #                     # yFilteredRecord.append(yDroneFiltered)
+                #
+                #             # filter z
+                #             # zFiltered = lfilter(b, a, zRecord)
+                #             zFiltered = filtfilt(b, a, recorder.zRecord[-buff:])
+                #             zDroneFiltered = zFiltered[-1]
+                #                     # zFilteredRecord.append(zDroneFiltered)
+                #
+                #             # Tuneo medida leida angulo
+                #             if anguloPrevio:  # Previo y filtrado son el mismo valor. anguloPrevio y angleDroneFiltered
+                #                 while (angleDrone - anguloPrevio) > 180:
+                #                     angleDrone -= 360
+                #                 while (angleDrone - anguloPrevio) <= -180:
+                #                     angleDrone += 360
+                #
+                #                     # angleMovidoRecord.append(angleDrone)
+                #
+                #             # filter angle
+                #             # angleFiltered = lfilter(b, a, angleRecord)
+                #             angleFiltered = lfilter(ba, aa, recorder.angleMovidoRecord[-10:])    # a manota el 10
+                #             angleDroneFiltered = angleFiltered[-1]
+                #             anguloPrevio = int(angleDroneFiltered)
+                #                     # angleFilteredRecord.append(angleDroneFiltered)
+                #
+                #             # El filtrado tuneado es el correcto, en rango 0-360 tras aplicar filtro
+                #             angleDroneFilteredTuneado = int(anguloPrevio)
+                #             while angleDroneFilteredTuneado >= 360:
+                #                 angleDroneFilteredTuneado -= 360
+                #             while angleDroneFilteredTuneado < 0:
+                #                 angleDroneFilteredTuneado += 360
+                #
+                #             recorder.save_debug(angulo_movido=angleDrone, angulo_filtrado_raw=angleDroneFiltered)
+                #             recorder.save_filtered_positions(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado)
+                #
+                #         else:
+                #             recorder.save_debug(angulo_movido=angleDrone, angulo_filtrado_raw=angleDrone)
+                #             recorder.save_filtered_positions(xDrone, yDrone, zDrone, angleDrone)
+                #             xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado = xDrone, yDrone, zDrone, angleDrone
+                #         # implement a PID controller
+                #
+                #         # store previous errors in position (cm) and angle (degrees) (to compute variation of error)
+                #         xError_old, yError_old, zError_old, angleError_old = xError, yError, zError, angleError
+                #
+                #
+                #         if info: print("[LEIDO FILTRADO]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado))
+                #         # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
+                #         xError = gb.xTarget - xDroneFiltered
+                #         yError = gb.yTarget - yDroneFiltered
+                #         zError = gb.zTarget - zDroneFiltered
+                #         angleError = gb.angleTarget - angleDroneFilteredTuneado   # Pruebas angulos!!
+                #
+                #         # Trucar gravedad intento 1:
+                #         if zError < 0 and gb.correccion_gravedad > 0: zError /= gb.correccion_gravedad
+                #         # if zError < 0: print(zError)
+                #
+                #         # Fix angulo, xq no habré hecho to en radianes? U-.-
+                #         if angleError > 180: angleError -= 360
+                #         elif angleError <= -180: angleError += 360
+                #
+                #         # compute integral (sum) of errors (I)
+                #         # should design an anti windup for z
+                #         xErrorI += xError
+                #         yErrorI += yError
+                #         zErrorI += zError
+                #         angleErrorI += angleError
+                #
+                #         # compute derivative (variation) of errors (D)
+                #         xErrorD = xError - xError_old
+                #         yErrorD = yError - yError_old
+                #         zErrorD = zError - zError_old
+                #         angleErrorD = angleError - angleError_old
+                #
+                #         # compute commands
+                #         xCommand = gb.KPx * xError + gb.KIx * xErrorI + gb.KDx * xErrorD
+                #         yCommand = gb.KPy * yError + gb.KIy * yErrorI + gb.KDy * yErrorD
+                #         zCommand = gb.KPz * zError + gb.KIz * zErrorI + gb.KDz * zErrorD
+                #         angleCommand = gb.KPangle * angleError + gb.KIangle * angleErrorI + gb.KDangle * angleErrorD
+                #
+                #         # print the X, Y, Z, angle commands
+                #         # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
+                #         # print("X:", str(xCommand))
+                #
+                #         throttleCommand = gb.throttle_middle + zCommand
+                #
+                #         # angleDrone to radians for projection
+                #
+                # # -> Provisional
+                #         # ###############
+                #         angleDir = 360 - 180 + math.atan2(xCommand, yCommand) / math.pi*180
+                #         # angleDir = 360 - 180 + math.atan2(xError, yError) / math.pi*180   <- Buena!
+                #         angleMovRad = (angleDroneFilteredTuneado * np.pi / 180) - (angleDir * np.pi / 180)     # <- FILTRADO O LEIDO?? TUN TUN
+                #         distMov = math.sqrt(xError**2 + yError**2)
+                #         # ###############
+                #
+                #
+                #         # print("ANGULO RELATIVO: " + str(angleMovRad / math.pi*180))
+                #
+                #         # project xCommand and yCommand on the axis of the drone
+                #         # commands are relative to the middle PPM values
+                #
+                # # -> Provisional
+                #         # ###############
+                #         elevatorCommand = gb.elevator_middle - np.cos(angleMovRad) * distMov
+                #         aileronCommand = gb.aileron_middle - np.sin(angleMovRad) * distMov
+                #         # ###############
+                #         # elevatorCommand = elevator_middle - yCommand
+                #         # aileronCommand = aileron_middle + xCommand
+                #
+                #         # elevatorCommand = elevator_middle - np.sin(angleMovRad) * xCommand + np.cos(angleMovRad) * yCommand
+                #         # aileronCommand = aileron_middle - np.cos(angleMovRad) * xCommand - np.sin(angleMovRad) * yCommand
+                #
+                #         # rudder command is angleCommand
+                #         # commands are relative to the middle PPM values
+                #         rudderCommand = gb.rudder_middle - angleCommand
+                #
+                #         # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+                #         # clamp_offset = 100
+                #         throttleCommand = round(clamp(throttleCommand, gb.throttle_middle-gb.clamp_offset, gb.throttle_middle+gb.clamp_offset))
+                #         throttleCommand = round(clamp(throttleCommand, 1000, 2000))
+                #         aileronCommand = round(clamp(aileronCommand, gb.aileron_middle-gb.clamp_offset, gb.aileron_middle+gb.clamp_offset))
+                #         aileronCommand = round(clamp(aileronCommand, 1000, 2000))
+                #         elevatorCommand = round(clamp(elevatorCommand, gb.elevator_middle-gb.clamp_offset, gb.elevator_middle+gb.clamp_offset))
+                #         elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
+                #         rudderCommand = round(clamp(rudderCommand, gb.rudder_middle-gb.clamp_offset, gb.rudder_middle+gb.clamp_offset))
+                #         rudderCommand = round(clamp(rudderCommand, 1000, 2000))
 
-        # record the position and orientation
-        xRecord.append(xDrone)
-        yRecord.append(yDrone)
-        zRecord.append(zDrone)
-        angleRecord.append(angleDrone)
 
-        # filter y
-        buff = fps
-        if len(xRecord) >= buff:
-            xFiltered = filtfilt(b, a, xRecord[-buff:])
-            xDroneFiltered = xFiltered[-1]
-            xFilteredRecord.append(xDroneFiltered)
-            yFiltered = filtfilt(b, a, yRecord[-buff:])
-            yDroneFiltered = yFiltered[-1]
-            yFilteredRecord.append(yDroneFiltered)
-
-            # filter z
-            # zFiltered = lfilter(b, a, zRecord)
-            zFiltered = filtfilt(b, a, zRecord[-buff:])
-            zDroneFiltered = zFiltered[-1]
-            zFilteredRecord.append(zDroneFiltered)
-
-            # Tuneo medida leida angulo
-            if anguloPrevio:  # Previo y filtrado son el mismo valor. anguloPrevio y angleDroneFiltered
-                while (angleDrone - anguloPrevio) > 180:
-                    angleDrone -= 360
-                while (angleDrone - anguloPrevio) <= -180:
-                    angleDrone += 360
-            angleMovidoRecord.append(angleDrone)
-
-            # filter angle
-            # angleFiltered = lfilter(b, a, angleRecord)
-            angleFiltered = lfilter(ba, aa, angleMovidoRecord[-10:])    # a manota
-            angleDroneFiltered = angleFiltered[-1]
-            anguloPrevio = int(angleDroneFiltered)
-            angleFilteredRecord.append(angleDroneFiltered)
-
-            angleDroneFilteredTuneado = int(anguloPrevio)
-            while angleDroneFilteredTuneado >= 360:
-                angleDroneFilteredTuneado -= 360
-            while angleDroneFilteredTuneado < 0:
-                angleDroneFilteredTuneado += 360
-
-            angleTuneadoRecord.append(angleDroneFilteredTuneado)
-
-        else:
-            angleMovidoRecord.append(angleDrone)
-            angleTuneadoRecord.append(angleDrone)
-            xFilteredRecord.append(xDrone)
-            yFilteredRecord.append(yDrone)
-            zFilteredRecord.append(zDrone)
-            angleFilteredRecord.append(angleDrone)
-            xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado = xDrone, yDrone, zDrone, angleDrone
-        # implement a PID controller
-
-        # store previous errors in position (cm) and angle (degrees) (to compute variation of error)
-        xError_old = xError
-        yError_old = yError
-        zError_old = zError
-        angleError_old = angleError
-
-
-        if info: print("[LEIDO FILTRADO]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado))
-        # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
-        xError = gb.xTarget - xDroneFiltered
-        yError = gb.yTarget - yDroneFiltered
-        zError = gb.zTarget - zDroneFiltered
-        angleError = gb.angleTarget - angleDroneFilteredTuneado   # Pruebas angulos!!
-
-        # Trucar gravedad intento 1:
-        if zError < 0 and gb.correccion_gravedad > 0: zError /= gb.correccion_gravedad
-        # if zError < 0: print(zError)
-
-        # Fix angulo, xq no habré hecho to en radianes? U-.-
-        if angleError > 180: angleError -= 360
-        elif angleError <= -180: angleError += 360
-
-        # compute integral (sum) of errors (I)
-        # should design an anti windup for z
-        xErrorI += xError
-        yErrorI += yError
-        zErrorI += zError
-        angleErrorI += angleError
-
-        # compute derivative (variation) of errors (D)
-        xErrorD = xError - xError_old
-        yErrorD = yError - yError_old
-        zErrorD = zError - zError_old
-        angleErrorD = angleError - angleError_old
-
-        # compute commands
-        xCommand = gb.KPx * xError + gb.KIx * xErrorI + gb.KDx * xErrorD
-        yCommand = gb.KPy * yError + gb.KIy * yErrorI + gb.KDy * yErrorD
-        zCommand = gb.KPz * zError + gb.KIz * zErrorI + gb.KDz * zErrorD
-        angleCommand = gb.KPangle * angleError + gb.KIangle * angleErrorI + gb.KDangle * angleErrorD
-
-        # print the X, Y, Z, angle commands
-        # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
-        # print("X:", str(xCommand))
-
-        # throttle command is zCommand
-        # commands are relative to the middle PPM values
-        throttleCommand = gb.throttle_middle + zCommand
-
-        # angleDrone to radians for projection
-
-# -> Provisional
-        # ###############
-        angleDir = 360 - 180 + math.atan2(xCommand, yCommand) / math.pi*180
-        # angleDir = 360 - 180 + math.atan2(xError, yError) / math.pi*180   <- Buena!
-        angleMovRad = (angleDroneFilteredTuneado * np.pi / 180) - (angleDir * np.pi / 180)     # <- FILTRADO O LEIDO?? TUN TUN
-        distMov = math.sqrt(xError**2 + yError**2)
-        # ###############
-
-
-        # print("ANGULO RELATIVO: " + str(angleMovRad / math.pi*180))
-
-        # project xCommand and yCommand on the axis of the drone
-        # commands are relative to the middle PPM values
-
-# -> Provisional
-        # ###############
-        elevatorCommand = gb.elevator_middle - np.cos(angleMovRad) * distMov
-        aileronCommand = gb.aileron_middle - np.sin(angleMovRad) * distMov
-        # ###############
-        # elevatorCommand = elevator_middle - yCommand
-        # aileronCommand = aileron_middle + xCommand
-
-        # elevatorCommand = elevator_middle - np.sin(angleMovRad) * xCommand + np.cos(angleMovRad) * yCommand
-        # aileronCommand = aileron_middle - np.cos(angleMovRad) * xCommand - np.sin(angleMovRad) * yCommand
-
-        # rudder command is angleCommand
-        # commands are relative to the middle PPM values
-        rudderCommand = gb.rudder_middle - angleCommand
-
-        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
-        # clamp_offset = 100
-        throttleCommand = round(clamp(throttleCommand, gb.throttle_middle-gb.clamp_offset, gb.throttle_middle+gb.clamp_offset))
-        throttleCommand = round(clamp(throttleCommand, 1000, 2000))
-        aileronCommand = round(clamp(aileronCommand, gb.aileron_middle-gb.clamp_offset, gb.aileron_middle+gb.clamp_offset))
-        aileronCommand = round(clamp(aileronCommand, 1000, 2000))
-        elevatorCommand = round(clamp(elevatorCommand, gb.elevator_middle-gb.clamp_offset, gb.elevator_middle+gb.clamp_offset))
-        elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
-        rudderCommand = round(clamp(rudderCommand, gb.rudder_middle-gb.clamp_offset, gb.rudder_middle+gb.clamp_offset))
-        rudderCommand = round(clamp(rudderCommand, 1000, 2000))
 
         # create the command to send to Arduino
-        command = "%i,%i,%i,%i" % (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+        command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
 
         # print the projected commands
-        if info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+        if info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
 
         # send to Arduino via serial port
         if VUELA: midron.send_command(command)
         # if VUELA: midron.set_command(command)
         # print("SE ENVIAN COMANDOS!!!")
 
-        # record everything
-        timerStop = datetime.now() - timerStart
-        timeRecord.append(timerStop.total_seconds())
-
-        xErrorRecord.append(xError)
-        yErrorRecord.append(yError)
-        zErrorRecord.append(zError)
-        angleErrorRecord.append(angleError)
-
-        elevatorRecord.append(elevatorCommand)
-        aileronRecord.append(aileronCommand)
-        throttleRecord.append(throttleCommand)
-        rudderRecord.append(rudderCommand)
-
 
     #PINTA MIERDA EN PANTALLA
 
-        # CURRENT INFO
-        cv2.putText(frame, "X: " + str(x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("amarillo"), 1)
-        cv2.putText(frame, "Y: " + str(y), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("amarillo"), 1)
-        cv2.putText(frame, "Z: " + str(int(z)), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("amarillo"), 1)
-        cv2.putText(frame, "H: " + str(head), (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("amarillo"), 1)
-        fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
+        # fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
         ms_frame = (datetime.now() - t_start).microseconds / 1000
-        # cv2.putText(frame, "FPS: " + str(fps_display), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("verde"), 1)
-        cv2.putText(frame, "T_FRAME: " + str(ms_frame), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("verde"), 1)
-
-        # Target POINT
-        cv2.putText(frame, "X: " + str(gb.xTarget), (530, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "Y: " + str(gb.yTarget), (530, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "Z: " + str(gb.zTarget), (530, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.putText(frame, "H: " + str(gb.angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, colorea("azul"), 1)
-        cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, colorea("azul"), -1)
-
+        rfs.pinta_informacion_en_frame(frame, t_frame=ms_frame)
         cv2.imshow('frame gordo', frame)
 
 
@@ -554,21 +479,23 @@ def main():
     midron.panic()
     midron.close()
 
-    nombre_fichero = 'recordings/recording' + timestamp + '.mat'
-    scipy.io.savemat(nombre_fichero,
-                     mdict={'time': timeRecord, 'x': xRecord, 'xFiltered': xFilteredRecord, 'y': yRecord,
-                            'yFiltered': yFilteredRecord, 'z': zRecord, 'zFiltered': zFilteredRecord,
-                            'angle': angleRecord, 'angleFiltered': angleFilteredRecord,
-                            'angleMovido': angleMovidoRecord, 'angleTuneado': angleTuneadoRecord,
-                            'xError': xErrorRecord,
-                            'yError': yErrorRecord, 'zError': zErrorRecord, 'angleError': angleErrorRecord,
-                            'aileron': aileronRecord, 'elevator': elevatorRecord, 'throttle': throttleRecord,
-                            'rudder': rudderRecord})
-    diffs = np.ediff1d(timeRecord)
-    tiempos = [sum(diffs[v * fps:(v * fps) + fps]) for v in range(int(diffs.shape[0] / fps))]
-    print(tiempos)
-    print(np.mean(tiempos))
-    print("Fichero guardado con recordings: ", nombre_fichero)
+                    # nombre_fichero = 'recordings/recording' + timestamp + '.mat'
+                    # scipy.io.savemat(nombre_fichero,
+                    #                  mdict={'time': timeRecord, 'x': xRecord, 'xFiltered': xFilteredRecord, 'y': yRecord,
+                    #                         'yFiltered': yFilteredRecord, 'z': zRecord, 'zFiltered': zFilteredRecord,
+                    #                         'angle': angleRecord, 'angleFiltered': angleFilteredRecord,
+                    #                         'angleMovido': angleMovidoRecord, 'angleTuneado': angleTuneadoRecord,
+                    #                         'xError': xErrorRecord,
+                    #                         'yError': yErrorRecord, 'zError': zErrorRecord, 'angleError': angleErrorRecord,
+                    #                         'aileron': aileronRecord, 'elevator': elevatorRecord, 'throttle': throttleRecord,
+                    #                         'rudder': rudderRecord})
+                    # diffs = np.ediff1d(timeRecord)
+                    # tiempos = [sum(diffs[v * fps:(v * fps) + fps]) for v in range(int(diffs.shape[0] / fps))]
+                    # print(tiempos)
+                    # print(np.mean(tiempos))
+                    # print("Fichero guardado con recordings: ", nombre_fichero)
+
+    recorder.dump_to_file()
 
     if SALVA:
         config_data = dict()
