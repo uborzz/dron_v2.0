@@ -248,3 +248,5 @@ def pinta_informacion_en_frame(frame, fps=None, t_frame=None):
     cv2.putText(frame, "Z: " + str(gb.zTarget), (530, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
     cv2.putText(frame, "H: " + str(gb.angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
     cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, tupla_BGR("azul"), -1)
+
+    cv2.putText(frame, "Config: " + gb.config_activa, (530, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)

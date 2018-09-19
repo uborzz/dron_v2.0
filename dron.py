@@ -2,7 +2,7 @@ import serial
 import PID as pid
 import time
 
-class Dron():
+class Dron:
 
     def __init__(self, serial_port, simulated=False):
         baud_rate = 115200

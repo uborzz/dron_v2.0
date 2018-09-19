@@ -13,7 +13,7 @@ def kernel_circular(n):
     return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
 
 
-class Localizador():
+class Localizador:
     # Tendra 2 bolas y una corona - Corona solo
     def __init__(self, distancia_camara_suelo, debug=False, info=False):
         self.debug = debug
@@ -110,7 +110,7 @@ class Localizador():
         return x, y, z, head
 
 
-class Circulo():
+class Circulo:
     def __init__(self, lower, upper, trys, debug=False):
         self.upper_limit = upper
         self.lower_limit = lower
@@ -276,7 +276,7 @@ class Circulo():
 
 
 
-class Corona():
+class Corona:
     def __init__(self, lower, upper, trys, tamano_real, debug=False):
 
         self.debug = debug

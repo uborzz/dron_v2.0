@@ -1,4 +1,4 @@
-class KalmanFilter():
+class KalmanFilter:
 
     def __init__(self, q, r):
         self.q = q

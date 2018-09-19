@@ -27,6 +27,12 @@ class Controller():
         self.xError, self.yError, self.zError, self.angleError = 0, 0, 0, 0
         self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI = 0, 0, 0, 0
 
+    def windup(self):
+        self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI = 0, 0, 0, 0
+
+    def windupXY(self):
+        self.xErrorI, self.yErrorI = 0, 0
+
     def control(self):
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
