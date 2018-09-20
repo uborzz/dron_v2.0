@@ -8,16 +8,14 @@ import localizador
 from datetime import datetime, timedelta
 import json
 import math
+
+# Custom libs
+import globals as gb
 from rady_stream import Stream
 import rady_functions as rfs
-import globals as gb
 import dron
 from rady_controller import Controller
 from rady_configurator import Configurator
-
-
-VUELA = False
-SALVA = False
 
 # Version INFO
 vpy = sys.version_info
@@ -45,7 +43,7 @@ distancia_camara_suelo = 200
 gb.refresca_params_flag = False
 
 
-# hover
+# Target (inicial)
 gb.xTarget = 320 # pixeles
 gb.yTarget = 240 # pixeles
 gb.zTarget = 20 # cm  # Pruebas corona hechas con Z 20
@@ -55,25 +53,23 @@ gb.angleTarget = 180 # grados
 recorder = rfs.Recorder()
 recorder.configure(identificador=timestamp, fps=gb.fps)
 
-
 configurator = Configurator()
 
 # define engines off PPM value for throttle
 throttle_off = 1000
 
 
-
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
 midron = dron.create_dron("COM6", simulated=True)
-controller = Controller()
+controller = Controller(info=False)
 controller.initialize_general()
 
-info = True
+info = False
 locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
 
-
+#  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
 
     global frame
@@ -109,15 +105,14 @@ def click_clases(event, x, y, flags, param):
 
 
 def tracking():
-    global VUELA, SALVA
 
     global frame
     global hsv
 
     # mirror seleccionado?
     rotate = True # realmente es ahora un ROTATE 180º
-    # cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
-    cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
+    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
 
 
     # # DESACTIVADO PROVISIONAL...
@@ -132,7 +127,7 @@ def tracking():
     cv2.namedWindow('frame gordo')
     cv2.setMouseCallback('frame gordo', click_clases)
 
-    panels = rfs.ConfigPanels()
+    # panels = rfs.ConfigPanels()
 
 
     # cv2.createTrackbar("kk", "oo", 0, 179, nothing)
@@ -153,7 +148,7 @@ def tracking():
         timer_tick_count = cv2.getTickCount()
         t_loop_start = datetime.now()
 
-        if gb.refresca_params_flag: panels.refresca_params()
+        if gb.refresca_params_flag: configurator.panels.refresca_params()
         gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
         gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
 
@@ -169,99 +164,28 @@ def tracking():
             x, y, w, h = roi
             frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
 
-        # SCALE DOWN
+        # SCALE Imagen
         # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
         # cv2.imshow('image', frame)
 
-
         k = cv2.waitKey(1)
-        if k == ord('q'):
-            SALVA = True
+        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller):
             break
-        elif k == 27:
-            break
-        elif k == ord('a'):
-            midron.panic()
-            controller.windup()     # chapuza windup
-            VUELA = False
-        elif k == ord('s'):
-            totalenvios = midron.prueba_arduino_envios
-            midron.panic()
-            controller.windup()     # chapuza windup
-            VUELA = False
-            leidobuffer = midron.port.read(10000)
-            leidolist = leidobuffer.splitlines()
-            print(leidobuffer)
-            print("Mandados: {} - Respuestas: {}".format(totalenvios, len(leidolist)))
-        elif k == ord('r'):
-            controller.windup()
-            midron.prueba_arduino_envios = 0
-            # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
-            VUELA = True
-        elif k == ord('c'):
-            midron.calibrate2()
-        elif k == ord('x'):
-            midron.calibrate()
-        elif k == ord('b'):
-            midron.abajoizquierda()
-        elif k == ord('m'):
-            midron.abajoderecha()
-        elif k == ord('n'):
-            midron.neutro()
-        elif k == ord('z'):
-            # midron.send_command("1500,1700,1470,1500,0,0,0,1")
-            midron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
-            time.sleep(0.05)
-            lectura = midron.port.read(1000)
-            print("Lectura INIT enviado: ", lectura)
-            # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-            midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-            # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
-            time.sleep(4)
-            lectura = midron.port.read(1000)
-            print("Saliendo INIT: ", lectura)
-            # time.sleep(1)
-        # elif k == ord('x'):
-        #     midron.send_command("1500,1700,1470,1500,2000")
-        #     time.sleep(0.2)
-        #     midron.send_command("1500,1700,2000,1500")
-        #     time.sleep(0.5)
-        #     midron.send_command("1500,1700,1470,1500")
-        #     # time.sleep(1)
-        # elif k == ord('a'):
-        #     midron.send_command("1500,1600,1470,1500")
-        #     # time.sleep(1)
 
-        # Meter rotacion y salva/carga configs PID:
-        # save_to_config_activa
-        # load_config_activa
-        # create_new_config_file
-        # select_another_config_file
-
-
-        #####################################################################
-
-        # Aislar...
+        # Localizador
         gb.x, gb.y, gb.z, gb.head = locator.posicion_dron(frame)  # asignar a clase dron su localizador seria lo suyo.
         # Coger var que indike OK - NOK, o grado de OK del dron.
 
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
-
-        # if dron está visto OK:
+        # Comandos de contorl:
         throttle, aileron, elevator, rudder = controller.control()
 
-        # create the command to send to Arduino
-        command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
-
-        # print the projected commands
+        # Envío comandos a Arduino-Dron
         if info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
-
-        # send to Arduino via serial port
-        if VUELA: midron.send_command(command)
-        # if VUELA: midron.set_command(command)
-        # print("SE ENVIAN COMANDOS!!!")
+        command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
+        if midron.flag_vuelo: midron.send_command(command)
 
 
     #PINTA MIERDA EN PANTALLA
@@ -277,15 +201,13 @@ def main():
     tracking()
 
     cv2.destroyAllWindows()
-    # if VUELA: midron.panic()
-    # if VUELA: midron.close()
 
     midron.panic()
     midron.close()
 
     recorder.dump_to_file()
 
-    if SALVA:
+    if configurator.salvar_al_salir:
         configurator.save_config(gb.config_activa)
 
 

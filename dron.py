@@ -30,6 +30,7 @@ class Dron:
 
         # thread = threading.Thread(target=self.read_from_port)
         # thread.start()
+        self.flag_vuelo = False
 
     # def activar(self):
     #     while True:

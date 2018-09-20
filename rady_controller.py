@@ -9,7 +9,7 @@ recorder = rfs.Recorder()
 
 class Controller():
     def __init__(self, info=False):
-        self.print_info = True
+        self.print_info = info
 
     def initialize_general(self):
         # butterworth X-Y
@@ -69,7 +69,6 @@ class Controller():
 
             # filter angle
             # angleFiltered = lfilter(b, a, angleRecord)
-            print(recorder.angleMovidoRecord)
             angleFiltered = lfilter(self.ba, self.aa, recorder.angleMovidoRecord[-10:])    # a manota el 10
             angleDroneFiltered = angleFiltered[-1]
             self.anguloPrev = int(angleDroneFiltered)

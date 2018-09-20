@@ -4,7 +4,10 @@ import numpy as np
 import cv2
 import globals as gb
 import scipy.io
+import time
+from rady_configurator import Configurator
 
+configurator = Configurator()
 
 def get_undistort_map():
     try:
@@ -66,83 +69,6 @@ def tupla_BGR(color = "blanco"):
     elif color == "negro":          res = (0,0,0)
     else:                           res = (255, 255, 255)  # blanco
     return res
-
-
-class ConfigPanels():
-
-    def __init__(self):
-        self.create_trackbars()
-
-    def create_trackbars(self):
-        """
-            globals:
-            KPx, KPy, KPz, KPangle, KIx, KIy, KIz, KIangle, KDx, KDy, KDz, KDangle
-            throttle_middle, rudder_middle, aileron_middle, elevator_middle, correccion_gravedad, clamp_offset
-        """
-
-        # target
-        cv2.namedWindow('target')
-        cv2.resizeWindow('target', 300, 120)
-        cv2.createTrackbar('Z Target', 'target', 20, 50, self.nothing_target)
-        cv2.createTrackbar('A Target', 'target', 180, 360, self.nothing_target)
-
-        # trackbars
-        cv2.namedWindow('control')
-        cv2.resizeWindow('control', 400, 750)
-        cv2.createTrackbar('KPZ', 'control', gb.KPz, 20, self.nothing)
-        cv2.createTrackbar('KIZ', 'control', int(gb.KIz * 100), 100, self.nothing)
-        cv2.createTrackbar('KDZ', 'control', gb.KDz, 200, self.nothing)
-        cv2.createTrackbar('BIASZ', 'control', gb.throttle_middle, 2000, self.nothing)
-        cv2.createTrackbar('CG', 'control', gb.correccion_gravedad, 25, self.nothing)
-
-        cv2.createTrackbar('Clamp', 'control', gb.clamp_offset, 500, self.nothing)
-
-        cv2.createTrackbar('KPX', 'control', int(gb.KPx * 100), 500, self.nothing)
-        cv2.createTrackbar('KIX', 'control', int(gb.KIx * 100), 100, self.nothing)
-        cv2.createTrackbar('KDX', 'control', gb.KDx, 200, self.nothing)
-        cv2.createTrackbar('BIASAIL', 'control', gb.aileron_middle, 2000, self.nothing)
-
-        cv2.createTrackbar('KPY', 'control', int(gb.KPy * 100), 500, self.nothing)
-        cv2.createTrackbar('KIY', 'control', int(gb.KIy * 100), 100, self.nothing)
-        cv2.createTrackbar('KDY', 'control', gb.KDy, 200, self.nothing)
-        cv2.createTrackbar('BIASELE', 'control', gb.elevator_middle, 2000, self.nothing)
-
-        cv2.createTrackbar('KPA', 'control', gb.KPangle, 20, self.nothing)
-        cv2.createTrackbar('KIA', 'control', int(gb.KIangle * 100), 100, self.nothing)
-        cv2.createTrackbar('KDA', 'control', gb.KDangle, 200, self.nothing)
-        cv2.createTrackbar('BIASRUD', 'control', gb.rudder_middle, 2000, self.nothing)
-
-    def nothing(self, value):
-        gb.refresca_params_flag = True
-
-    def nothing_target(self):
-        pass
-
-    def refresca_params(self):
-        gb.refresca_params_flag = False
-
-        gb.KPz = cv2.getTrackbarPos("KPZ", "control")
-        gb.KIz = cv2.getTrackbarPos("KIZ", "control") / float(100)
-        gb.KDz = cv2.getTrackbarPos("KDZ", "control")
-        gb.throttle_middle = cv2.getTrackbarPos("BIASZ", "control")
-        gb.correccion_gravedad = cv2.getTrackbarPos("CG", "control")
-
-        gb.clamp_offset = cv2.getTrackbarPos("Clamp", "control")
-
-        gb.KPx = cv2.getTrackbarPos("KPX", "control") / float(100)
-        gb.KIx = cv2.getTrackbarPos("KIX", "control") / float(100)
-        gb.KDx = cv2.getTrackbarPos("KDX", "control")
-        gb.aileron_middle = cv2.getTrackbarPos("BIASAIL", "control")
-
-        gb.KPy = cv2.getTrackbarPos("KPY", "control") / float(100)
-        gb.KIy = cv2.getTrackbarPos("KIY", "control") / float(100)
-        gb.KDy = cv2.getTrackbarPos("KDY", "control")
-        gb.elevator_middle = cv2.getTrackbarPos("BIASELE", "control")
-
-        gb.KPangle = cv2.getTrackbarPos("KPA", "control")
-        gb.KIangle = cv2.getTrackbarPos("KIA", "control") / float(100)
-        gb.KDangle = cv2.getTrackbarPos("KDA", "control")
-        gb.rudder_middle = cv2.getTrackbarPos("BIASRUD", "control")
 
 
 class Recorder(object):
@@ -250,3 +176,74 @@ def pinta_informacion_en_frame(frame, fps=None, t_frame=None):
     cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, tupla_BGR("azul"), -1)
 
     cv2.putText(frame, "Config: " + gb.config_activa, (530, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+
+
+def evalua_key(key_pressed, dron, controller):
+    # Retorna True si el programa debe acabar
+    k = key_pressed
+    if k == ord('q'):
+        configurator.salvar_al_salir = True
+        return True
+    elif k == 27:
+        return True
+    elif k == ord('a'):
+        dron.panic()
+        controller.windup()  # chapuza windup
+        dron.flag_vuelo = True
+    elif k == ord('s'):
+        totalenvios = dron.prueba_arduino_envios
+        dron.panic()
+        controller.windup()  # chapuza windup
+        dron.flag_vuelo = False
+        leidobuffer = dron.port.read(10000)
+        leidolist = leidobuffer.splitlines()
+        print(leidobuffer)
+        print("Mandados: {} - Respuestas: {}".format(totalenvios, len(leidolist)))
+    elif k == ord('r'):
+        controller.windup()
+        dron.prueba_arduino_envios = 0
+        # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
+        VUELA = True
+    elif k == ord('c'):
+        dron.calibrate2()
+    elif k == ord('x'):
+        dron.calibrate()
+    elif k == ord('b'):
+        dron.abajoizquierda()
+    elif k == ord('m'):
+        dron.abajoderecha()
+    elif k == ord('n'):
+        dron.neutro()
+    elif k == ord('z'):
+        # midron.send_command("1500,1700,1470,1500,0,0,0,1")
+        dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
+        time.sleep(0.05)
+        lectura = dron.port.read(1000)
+        print("Lectura INIT enviado: ", lectura)
+        # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+        dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+        # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
+        time.sleep(4)
+        lectura = dron.port.read(1000)
+        print("Saliendo INIT: ", lectura)
+        # time.sleep(1)
+        # elif k == ord('x'):
+        #     midron.send_command("1500,1700,1470,1500,2000")
+        #     time.sleep(0.2)
+        #     midron.send_command("1500,1700,2000,1500")
+        #     time.sleep(0.5)
+        #     midron.send_command("1500,1700,1470,1500")
+        #     # time.sleep(1)
+        # elif k == ord('a'):
+        #     midron.send_command("1500,1600,1470,1500")
+        #     # time.sleep(1)
+
+        # Meter rotacion y salva/carga configs PID:
+    elif k == ord('u'):
+        configurator.save_to_config_activa()
+    elif k == ord('i'):
+        configurator.create_new_config_file()
+    elif k == ord('o'):
+        configurator.select_another_config_file()
+    elif k == ord('p'):
+        configurator.load_config_activa()
