@@ -79,7 +79,7 @@ class Panels():
         gb.refresca_params_flag = True
 
 
-    def nothing_target(self):
+    def nothing_target(self, value):
         pass
 
 
@@ -175,9 +175,11 @@ class Configurator:
 
     def save_to_config_activa(self):
         self.save_config_file(gb.config_activa)
+        print("CONFIG SAVED!", gb.config_activa, "has been modified.")
 
     def load_config_activa(self):
         self.load_config_file(gb.config_activa)
+        print(gb.config_activa, "config file LOADED!")
 
     def create_new_config_file(self):
         name = "{:%d_%H_%M}.json".format(datetime.now())
@@ -190,4 +192,13 @@ class Configurator:
         if index >= len(file_list):
             index = 0
         gb.config_activa = file_list[index]
-        print(gb.config_activa, "config file has been selected!")
+        print(gb.config_activa, "config file has been selected! Press P to Load.")
+
+    # Chapuza. Meter en paneles.
+    def config_target(self, x=None, y=None, z=None, a=None):
+        if z: cv2.setTrackbarPos('Z Target', 'target', z)
+        if a: cv2.setTrackbarPos('A Target', 'target', a)
+
+
+
+

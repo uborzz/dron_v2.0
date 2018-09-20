@@ -159,7 +159,7 @@ class Recorder(object):
         print("Fichero guardado con recordings: ", nombre_fichero)
 
 
-def pinta_informacion_en_frame(frame, fps=None, t_frame=None):
+def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
     cv2.putText(frame, "X: " + str(gb.x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
     cv2.putText(frame, "Y: " + str(gb.y), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
@@ -175,11 +175,30 @@ def pinta_informacion_en_frame(frame, fps=None, t_frame=None):
     cv2.putText(frame, "H: " + str(gb.angleTarget), (530, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
     cv2.circle(frame, (gb.xTarget, gb.yTarget), 3, tupla_BGR("azul"), -1)
 
-    cv2.putText(frame, "Config: " + gb.config_activa, (530, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(frame, "Config: " + gb.config_activa, (10, 430), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(frame, "Control: " + controller.mode, (10, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
+    cv2.putText(frame, "Dron: " + dron.mode, (10, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
+
+def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=None):
+    # CURRENT INFO
+    cv2.putText(panel, "X: " + str(gb.x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(panel, "Y: " + str(gb.y), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(panel, "Z: " + str(int(gb.z)), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(panel, "H: " + str(gb.head), (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    # if fps: cv2.putText(frame, "FPS: " + str(fps_display), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"), 1)
+
+    # Target POINT
+    cv2.putText(panel, "X: " + str(gb.xTarget), (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(panel, "Y: " + str(gb.yTarget), (10, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(panel, "Z: " + str(gb.zTarget), (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(panel, "H: " + str(gb.angleTarget), (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("azul"), 1)
+    cv2.putText(panel, "Config: " + gb.config_activa, (10, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
+    cv2.putText(panel, "Control: " + controller.mode, (10, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
+    cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
 def evalua_key(key_pressed, dron, controller):
-    # Retorna True si el programa debe acabar
+    # Retorna True si el programa debe acabaraaaaaaaaaaaaa
     k = key_pressed
     if k == ord('q'):
         configurator.salvar_al_salir = True
@@ -189,7 +208,7 @@ def evalua_key(key_pressed, dron, controller):
     elif k == ord('a'):
         dron.panic()
         controller.windup()  # chapuza windup
-        dron.flag_vuelo = True
+        dron.flag_vuelo = False
     elif k == ord('s'):
         totalenvios = dron.prueba_arduino_envios
         dron.panic()
@@ -202,8 +221,9 @@ def evalua_key(key_pressed, dron, controller):
     elif k == ord('r'):
         controller.windup()
         dron.prueba_arduino_envios = 0
+        dron.set_mode("DESPEGUE")
         # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
-        VUELA = True
+        dron.flag_vuelo = True
     elif k == ord('c'):
         dron.calibrate2()
     elif k == ord('x'):
@@ -247,3 +267,10 @@ def evalua_key(key_pressed, dron, controller):
         configurator.select_another_config_file()
     elif k == ord('p'):
         configurator.load_config_activa()
+
+    elif k == ord('.'):
+        dron.change_mode()
+    elif k == ord('-'):
+        controller.change_mode()
+    elif k == ord('+'):
+        gb.info = not gb.info

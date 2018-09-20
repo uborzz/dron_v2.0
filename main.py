@@ -36,7 +36,7 @@ timestamp = "{:%Y_%m_%d_%H_%M}".format(datetime.now())
 print("Timestamp:", timestamp)
 
 frame = None
-hsv = None
+panel = np.zeros((400,400,3), np.uint8)
 
 # params
 distancia_camara_suelo = 200
@@ -55,26 +55,21 @@ recorder.configure(identificador=timestamp, fps=gb.fps)
 
 configurator = Configurator()
 
-# define engines off PPM value for throttle
-throttle_off = 1000
 
+gb.info = False
 
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
-midron = dron.create_dron("COM6", simulated=True)
+midron = dron.create_dron("COM6", simulated=False)
 controller = Controller(info=False)
 controller.initialize_general()
 
-info = False
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
+locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info)
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
-
     global frame
-    global hsv
-
     # if event == cv2.EVENT_LBUTTONDOWN:
     #     pass
 
@@ -103,17 +98,13 @@ def click_clases(event, x, y, flags, param):
         print("target angulo:")
         print(a)
 
-
-def tracking():
-
+def main():
     global frame
-    global hsv
 
     # mirror seleccionado?
     rotate = True # realmente es ahora un ROTATE 180º
-    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
     # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
-
+    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
 
     # # DESACTIVADO PROVISIONAL...
     # # Lectura frames per second
@@ -122,20 +113,15 @@ def tracking():
     # avg_fps = 0.0
     # counter = 0
 
-
     # clicks
     cv2.namedWindow('frame gordo')
     cv2.setMouseCallback('frame gordo', click_clases)
 
-    # panels = rfs.ConfigPanels()
-
-
-    # cv2.createTrackbar("kk", "oo", 0, 179, nothing)
+    cv2.namedWindow('more info')
 
     gb.timerStart = datetime.now()
     timer_fps = datetime.now()  # guarda tiempo de ultimo procesamiento.
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
-
 
     while True:
 
@@ -143,7 +129,6 @@ def tracking():
         if not toca_procesar:
             continue
         timer_fps = datetime.now()
-
 
         timer_tick_count = cv2.getTickCount()
         t_loop_start = datetime.now()
@@ -179,26 +164,30 @@ def tracking():
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
-        # Comandos de contorl:
-        throttle, aileron, elevator, rudder = controller.control()
+        # Comandos de control:
+        pack = controller.control()
+
 
         # Envío comandos a Arduino-Dron
-        if info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
-        command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
-        if midron.flag_vuelo: midron.send_command(command)
+        if pack:
+            (throttle, aileron, elevator, rudder) = pack
+            if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
+            command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
+            if midron.flag_vuelo: midron.send_command(command)
+        else:
+            if gb.info: print("no init control...")
 
 
     #PINTA MIERDA EN PANTALLA
 
         # fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer_tick_count)
         ms_frame = (datetime.now() - t_loop_start).microseconds / 1000
-        rfs.pinta_informacion_en_frame(frame, t_frame=ms_frame)
+        rfs.pinta_informacion_en_frame(frame, midron, controller, t_frame=ms_frame)
         cv2.imshow('frame gordo', frame)
 
+        # rfs.pinta_informacion_en_panel_info(panel, midron, controller)
+        # cv2.imshow('more info', panel)
 
-def main():
-
-    tracking()
 
     cv2.destroyAllWindows()
 

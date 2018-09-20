@@ -1,6 +1,10 @@
 import serial
 import PID as pid
 import time
+import globals as gb
+from rady_configurator import Configurator
+
+configurator = Configurator()
 
 class Dron:
 
@@ -12,7 +16,8 @@ class Dron:
         if not self.simulated:
             self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
 
-        self.set_mode("ONGROUND")
+        self.modes_available=["NO_INIT", "DESPEGUE", "HOVER", "LAND"]
+        self.set_mode("NO_INIT")
         self.motor_on = False
         self.drone_properties = "drone.config"
 
@@ -63,6 +68,19 @@ class Dron:
 
     def set_mode(self, modo):
         self.mode = modo
+        if modo == "DESPEGUE":
+            gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
+            configurator.config_target(a=gb.head)
+        elif modo == "HOLD":
+            gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
+            configurator.config_target(z=gb.z, a=gb.head)
+
+    def change_mode(self):
+        index = self.modes_available.index(self.mode) + 1
+        if index >= len(self.modes_available):
+            index = 0
+        self.set_mode(self.modes_available[index])
+        print("Modo dron elegido:", self.mode)
 
     def turn_motors_ON(self):
         self.z_pid.reset()
