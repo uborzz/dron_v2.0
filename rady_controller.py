@@ -4,7 +4,7 @@ from scipy.signal import butter, lfilter, filtfilt
 import globals as gb
 import numpy as np
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from rady_configurator import Configurator
 
 recorder = rfs.Recorder()
@@ -14,7 +14,7 @@ class Controller():
     def __init__(self, info=False):
         self.print_info = info
         self.mode = "BASICO"
-        self.modes_available = ["BASICO", "BASICO_LF"]
+        self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS"]
 
     def initialize_general(self):
         # butterworth X-Y
@@ -32,6 +32,8 @@ class Controller():
         self.xError, self.yError, self.zError, self.angleError = 0, 0, 0, 0
         self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI = 0, 0, 0, 0
 
+        self.t_inicio_maniobra = datetime.now()
+
         self.dron = dron.take_dron()
 
     def change_mode(self):
@@ -40,6 +42,9 @@ class Controller():
             index = 0
         self.mode = self.modes_available[index]
         print("Modo controller elegido:", self.mode)
+
+    def set_mode(self, mode):
+        self.mode = mode
 
     def windup(self):
         self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI = 0, 0, 0, 0
@@ -51,11 +56,16 @@ class Controller():
         if self.dron.mode == "DESPEGUE":
             if self.mode == "BASICO": return self.control_basico()
             elif self.mode == "BASICO_LF": return self.control_basico_lfilter()
+            elif self.mode == "CALIB_BIAS":
+                return self.control_calib_bias()
             # return self.control_con_filtros()
         elif self.dron.mode == "HOLD":
             return self.control_con_filtros()
         elif self.dron.mode == "NO_INIT":
-            return ()
+            if self.mode == "CALIB_BIAS":
+                return self.control_calib_bias()
+            return()
+
 
     def control_con_filtros(self):
         # Filtros y PID control
@@ -260,6 +270,53 @@ class Controller():
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
+    def control_calib_bias(self):
+        # Filtros y PID control
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        angleCommand = gb.KPangle * self.angleError
+
+        t_ahora = datetime.now()
+
+        elevatorCommand = gb.elevator_middle
+        aileronCommand = gb.aileron_middle
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        if t_ahora - self.t_inicio_maniobra <= timedelta(seconds=1):
+            throttleCommand = 1500
+        elif t_ahora - self.t_inicio_maniobra <= timedelta(seconds=3):
+            throttleCommand = 1000
+        else:
+            throttleCommand = 1000
+            e_x = gb.xTarget - gb.x
+            e_y = gb.yTarget - gb.y
+            print("Errores:", e_x, e_y)
+            if abs(e_x)>= 15 or abs(e_y) >= 15:
+                if abs(e_x) >= 15:
+                    gb.aileron_middle += 10
+                if abs(e_y) >= 15:
+                    gb.elevator_middle -= 10
+                self.t_inicio_maniobra = datetime.now()
+                configurator.panels.refresh_sliders_from_globals()
+            else:
+                print("HEcho!")
+                self.dron.set_mode("NO_INIT")
+                self.set_mode("BASICO")
+
+        self.angleError = gb.angleTarget - angleDrone
+
+        # print the X, Y, Z, angle commands
+        # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
+        # print("X:", str(xCommand))
+
+
+
+        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
+        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+
+        return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
 
     def control_basico_lfilter(self):
         # Filtros y PID control
@@ -336,8 +393,6 @@ class Controller():
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
-
-
 
 
 

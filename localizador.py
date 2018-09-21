@@ -5,6 +5,7 @@ import time
 import queue
 import kalman_jc as kf
 import math
+import globals as gb
 
 def kernel_cuadrado(n):
     return np.ones((n, n), np.uint8)
@@ -15,7 +16,7 @@ def kernel_circular(n):
 
 class Localizador:
     # Tendra 2 bolas y una corona - Corona solo
-    def __init__(self, distancia_camara_suelo, debug=False, info=False):
+    def __init__(self, distancia_camara_suelo, debug=False, info=False, kalman_angle=True):
         self.debug = debug
         self.info = info
 
@@ -28,7 +29,7 @@ class Localizador:
         lower_verde = np.array([38, 50, 50])
         upper_verde = np.array([52, 255, 255])
 
-        lower_corona = np.array([15, 50, 50])
+        lower_corona = np.array([20, 50, 50])
         upper_corona = np.array([30, 255, 255])     ## <- Naranja ~ 20-25
 
         self.distancia_camara_suelo = distancia_camara_suelo
@@ -40,6 +41,9 @@ class Localizador:
         # self.K_y = kf.KalmanFilter(1, 1)
         # self.K_head = kf.KalmanFilter(1, 1)
         # self.K_z = kf.KalmanFilter(1, 1)
+
+        self.head = 0
+        self.K_head = kf.KalmanFilter(7, 2)
 
         # self.coronaNaranja = Corona(2)
         pass
@@ -63,6 +67,7 @@ class Localizador:
 
 
     def posicion_dron(self, frame):
+        status = True
         # Aplicar filtro Kalman
 
         # resized_frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
@@ -75,29 +80,39 @@ class Localizador:
         x = self.coronaNaranja.I_x
         y = self.coronaNaranja.I_y
 
+
         # x = self.K_x.predict_and_correct(x)
         # y = self.K_x.predict_and_correct(y)
         # z = self.tamano_maximo_corona()
 
         # Ajuste Z
         z = self.estima_altura(self.coronaNaranja.radius * 2, hmax=self.distancia_camara_suelo, corona=self.coronaNaranja.tamano_real_cm) # referencia a radio del circulo de la corona
-        head = math.atan2(x-self.circuloVerde.x, y-self.circuloVerde.y) # radianes
 
-        # # intento de kalman para el angulo???
-        # if head > math.pi:
-        #     head -= 2 * math.pi
-        # elif head < -math.pi:
-        #     head += 2 * math.pi
+        if gb.solo_buscar_en_cercanias and self.circuloVerde.last_located >=1:
+            head = self.head
+            status = False
+        else:
+            head = math.atan2(x-self.circuloVerde.x, y-self.circuloVerde.y) # radianes
+            head = int(math.degrees(head)) + 180
 
+        if not gb.disable_all_kalmans:
+            if head <= 10 or head >= 350:
+                pass
+            elif gb.kalman_angle:
+                headp = self.K_head.predict_and_correct(head)
+                head = int(headp)
+
+        self.head = head
 
         # Para dibujar la flecha direccion
-        x2 = int(x - self.coronaNaranja.radius * math.sin(head))
-        y2 = int(y - self.coronaNaranja.radius * math.cos(head))
+        x2 = int(x - self.coronaNaranja.radius * math.sin(math.radians(head-180)))
+        y2 = int(y - self.coronaNaranja.radius * math.cos(math.radians(head-180)))
 
-        head = int(math.degrees(head)) + 180
         if self.info: print("[LOCALIZADOR]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(x, y, z, head))
 
         cv2.arrowedLine(frame, (x,y), (x2, y2), (50,255,230), 2)
+
+
 
         # DRAW:
         # cv2.circle(frame, (self.circuloVerde.I_x, self.circuloVerde.I_y), 4, (0,255,0), thickness=-1)
@@ -107,7 +122,7 @@ class Localizador:
         # cv2.imshow("circulo_corona", frame)
 
         # de posiciones obtenidas vision...
-        return x, y, z, head
+        return (x, y, z, head), status
 
 
 class Circulo:
@@ -223,16 +238,21 @@ class Circulo:
             if keypoints:
                 flag_localizado = True
 
-        if not flag_localizado and self.located:
-            # Detect blobs with mask
-            focalizada = cv2.bitwise_and(mask_inv, mask_roi)
-            keypoints = self.detector.detect(focalizada)
-            # keypoints = self.detector.detect(mask_inv, mask=mask_roi)
-            # print("LOCATED")
-            if keypoints:
-                flag_localizado = True
 
-        if not flag_localizado and not self.located:
+        elif gb.solo_buscar_en_cercanias == False:
+            if not flag_localizado and self.located:
+                # Detect blobs with mask
+                focalizada = cv2.bitwise_and(mask_inv, mask_roi)
+                keypoints = self.detector.detect(focalizada)
+                # keypoints = self.detector.detect(mask_inv, mask=mask_roi)
+                # print("LOCATED")
+                if keypoints:
+                    flag_localizado = True
+
+            if not flag_localizado and not self.located:
+                keypoints = self.detector.detect(mask_inv)
+
+        else:
             keypoints = self.detector.detect(mask_inv)
 
             # print("NOT LOCATED PREVIO")
@@ -255,17 +275,21 @@ class Circulo:
                 self.last_located += 1
 
 
-        # print("TRAS CNTS: ", x, y)
+        if gb.disable_all_kalmans:
+            self.x = x
+            self.y = y
+            self.I_x = int(self.x)
+            self.I_y = int(self.y)
+        else:
+            # print("TRAS CNTS: ", x, y)
+            xp = self.K_x.predict_and_correct(x)
+            yp = self.K_y.predict_and_correct(y)
 
-        xp = self.K_x.predict_and_correct(x)
-        yp = self.K_y.predict_and_correct(y)
-
-        # print("TRAS KALMAN: ", xp, yp)
-
-        self.x = xp
-        self.y = yp
-        self.I_x = int(self.x)
-        self.I_y = int(self.y)
+            # print("TRAS KALMAN: ", xp, yp)
+            self.x = xp
+            self.y = yp
+            self.I_x = int(self.x)
+            self.I_y = int(self.y)
 
 
         # print("SELF I_XY: ", self.I_x, self.I_y)
@@ -306,7 +330,7 @@ class Corona:
 
 
         # v,^ --slow
-        self.K_x = kf.KalmanFilter(5, 5)
+        self.K_x = kf.KalmanFilter(6, 4)
         self.K_y = kf.KalmanFilter(5, 5)
         self.K_radius = kf.KalmanFilter(0.75, 3) # <--- 0.15 antes (Corona Naranja)
 
@@ -494,17 +518,22 @@ class Corona:
 
 ################## Fin mods, zona cercana
 
-        xp = self.K_x.predict_and_correct(x)
-        yp = self.K_y.predict_and_correct(y)
+        if gb.disable_all_kalmans:
+            self.x = x
+            self.y = y
+            self.I_x = int(self.x)
+
+            self.I_y = int(self.y)
+        else:
+            xp = self.K_x.predict_and_correct(x)
+            yp = self.K_y.predict_and_correct(y)
+            self.x = xp
+            self.y = yp
+            self.I_x = int(self.x)
+            self.I_y = int(self.y)
+
+        # kalman radio
         radio = self.K_radius.predict_and_correct(radius)
-
-        # print("TRAS KALMAN: ", xp, yp)
-
-        self.x = xp
-        self.y = yp
-        self.I_x = int(self.x)
-        self.I_y = int(self.y)
-
         self.radius = radio
         self.I_radius = int(self.radius)
 

@@ -74,6 +74,9 @@ class Dron:
         elif modo == "HOLD":
             gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
             configurator.config_target(z=gb.z, a=gb.head)
+        elif modo == "CALIB_BIAS":
+            gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, 180
+            configurator.config_target(a=gb.head)
 
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
@@ -174,7 +177,6 @@ class Dron:
 
     def panic(self):
         command = "1000,1000,1000,1000"
-        self.send_command(command)
         self.send_command(command)
         self.send_command(command)
         self.send_command(command)

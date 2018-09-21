@@ -6,6 +6,7 @@ import globals as gb
 import scipy.io
 import time
 from rady_configurator import Configurator
+from datetime import datetime
 
 configurator = Configurator()
 
@@ -179,6 +180,9 @@ def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     cv2.putText(frame, "Control: " + controller.mode, (10, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
     cv2.putText(frame, "Dron: " + dron.mode, (10, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
+    cv2.putText(frame, "kalmans: " + str(not gb.disable_all_kalmans), (440, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"),1)
+    cv2.putText(frame, "cercanias: " + str(gb.solo_buscar_en_cercanias), (440, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"),1)
+
 
 def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
@@ -222,6 +226,14 @@ def evalua_key(key_pressed, dron, controller):
         controller.windup()
         dron.prueba_arduino_envios = 0
         dron.set_mode("DESPEGUE")
+        # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
+        dron.flag_vuelo = True
+    elif k == ord('t'):
+        controller.windup()
+        dron.prueba_arduino_envios = 0
+        controller.t_inicio_maniobra = datetime.now()
+        dron.set_mode("DESPEGUE")
+        controller.set_mode("CALIB_BIAS")
         # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
         dron.flag_vuelo = True
     elif k == ord('c'):
@@ -274,3 +286,9 @@ def evalua_key(key_pressed, dron, controller):
         controller.change_mode()
     elif k == ord('+'):
         gb.info = not gb.info
+
+    # provisional
+    elif k ==ord('ç'):
+        gb.disable_all_kalmans = not gb.disable_all_kalmans
+    elif k == ord('ñ'):
+        gb.solo_buscar_en_cercanias = not gb.solo_buscar_en_cercanias

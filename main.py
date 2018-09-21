@@ -37,6 +37,9 @@ print("Timestamp:", timestamp)
 
 frame = None
 panel = np.zeros((400,400,3), np.uint8)
+gb.kalman_angle = True
+gb.disable_all_kalmans = False
+gb.solo_buscar_en_cercanias = True
 
 # params
 distancia_camara_suelo = 200
@@ -102,7 +105,7 @@ def main():
     global frame
 
     # mirror seleccionado?
-    rotate = True # realmente es ahora un ROTATE 180º
+    rotate = False # realmente es ahora un ROTATE 180º
     # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
     cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
 
@@ -158,9 +161,9 @@ def main():
             break
 
         # Localizador
-        gb.x, gb.y, gb.z, gb.head = locator.posicion_dron(frame)  # asignar a clase dron su localizador seria lo suyo.
+        localizacion, estado_localizador = locator.posicion_dron(frame)  # asignar a clase dron su localizador seria lo suyo.
         # Coger var que indike OK - NOK, o grado de OK del dron.
-
+        gb.x, gb.y, gb.z, gb.head = localizacion
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
@@ -169,7 +172,7 @@ def main():
 
 
         # Envío comandos a Arduino-Dron
-        if pack:
+        if pack: # and estado_localizador:
             (throttle, aileron, elevator, rudder) = pack
             if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
             command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
@@ -197,7 +200,7 @@ def main():
     recorder.dump_to_file()
 
     if configurator.salvar_al_salir:
-        configurator.save_config(gb.config_activa)
+        configurator.save_config_file(gb.config_activa)
 
 
 if __name__ == '__main__':
