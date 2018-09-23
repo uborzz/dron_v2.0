@@ -201,17 +201,21 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
     cv2.putText(panel, "Control: " + controller.mode, (10, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
     cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
-def evalua_key(key_pressed, dron, controller):
+
+def evalua_key(key_pressed, dron, controller, camera):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
     k = key_pressed
     if k == ord('q'):
         configurator.salvar_al_salir = True
         return True
+    elif k == ord('w'):
+        camera.menu_config()
     elif k == 27:
         return True
     elif k == ord('a'):
         dron.panic()
         controller.windup()  # chapuza windup
+        dron.set_mode("NO_INIT")
         dron.flag_vuelo = False
     elif k == ord('s'):
         totalenvios = dron.prueba_arduino_envios

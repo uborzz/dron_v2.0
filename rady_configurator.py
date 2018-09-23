@@ -19,12 +19,14 @@ class Panels():
         # target
         cv2.namedWindow('target')
         cv2.resizeWindow('target', 300, 120)
+        cv2.moveWindow('target', 200+640+400, 100)
         cv2.createTrackbar('Z Target', 'target', 20, 50, self.nothing_target)
         cv2.createTrackbar('A Target', 'target', 180, 360, self.nothing_target)
 
         # trackbars
         cv2.namedWindow('control')
         cv2.resizeWindow('control', 400, 750)
+        cv2.moveWindow('control', 200+640, 100)
         cv2.createTrackbar('KPZ', 'control', gb.KPz, 20, self.nothing)
         cv2.createTrackbar('KIZ', 'control', int(gb.KIz * 100), 100, self.nothing)
         cv2.createTrackbar('KDZ', 'control', gb.KDz, 200, self.nothing)
@@ -48,7 +50,14 @@ class Panels():
         cv2.createTrackbar('KDA', 'control', gb.KDangle, 200, self.nothing)
         cv2.createTrackbar('BIASRUD', 'control', gb.rudder_middle, 2000, self.nothing)
 
-    def refresh_sliders_from_globals(self):
+    @staticmethod
+    def refresh_biases_from_globals():
+        cv2.setTrackbarPos('BIASAIL', 'control', gb.aileron_middle)
+        cv2.setTrackbarPos('BIASELE', 'control', gb.elevator_middle)
+
+
+    @staticmethod
+    def refresh_sliders_from_globals():
 
         # trackbars
         cv2.setTrackbarPos('KPZ', 'control', gb.KPz)
@@ -194,10 +203,20 @@ class Configurator:
         gb.config_activa = file_list[index]
         print(gb.config_activa, "config file has been selected! Press P to Load.")
 
-    # Chapuza. Meter en paneles.
+    # Chapuzas. Meter en paneles.
     def config_target(self, x=None, y=None, z=None, a=None):
-        if z: cv2.setTrackbarPos('Z Target', 'target', z)
-        if a: cv2.setTrackbarPos('A Target', 'target', a)
+        if x:
+            gb.xTarget = x
+        if y:
+            gb.yTarget = y
+        if z:
+            gb.zTarget = z
+            cv2.setTrackbarPos('Z Target', 'target', z)
+        if a:
+            gb.angleTarget = a
+            cv2.setTrackbarPos('A Target', 'target', a)
+
+
 
 
 

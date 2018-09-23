@@ -13,8 +13,8 @@ configurator = Configurator()
 class Controller():
     def __init__(self, info=False):
         self.print_info = info
-        self.mode = "BASICO"
-        self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS"]
+        self.mode = "HOVER_BIAS"
+        self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS", "HOVER_BIAS"]
 
     def initialize_general(self):
         # butterworth X-Y
@@ -54,16 +54,19 @@ class Controller():
 
     def control(self):
         if self.dron.mode == "DESPEGUE":
-            if self.mode == "BASICO": return self.control_basico()
+            if self.mode == "BASICO":
+                return self.control_basico()
+            elif self.mode == "HOVER_BIAS":
+                return self.control_hover_bias()
             elif self.mode == "BASICO_LF": return self.control_basico_lfilter()
             elif self.mode == "CALIB_BIAS":
                 return self.control_calib_bias()
             # return self.control_con_filtros()
         elif self.dron.mode == "HOLD":
             return self.control_con_filtros()
-        elif self.dron.mode == "NO_INIT":
-            if self.mode == "CALIB_BIAS":
-                return self.control_calib_bias()
+        # elif self.dron.mode == "NO_INIT":
+        #     if self.mode == "CALIB_BIAS":
+        #         return self.control_calib_bias()
             return()
 
 
@@ -211,6 +214,7 @@ class Controller():
 
     def control_basico(self):
         # Filtros y PID control
+        gb.angleTarget = 180
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
         # implement a PID controller
@@ -274,6 +278,8 @@ class Controller():
         # Filtros y PID control
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
+        gb.angleTarget = 180
+
         angleCommand = gb.KPangle * self.angleError
 
         t_ahora = datetime.now()
@@ -290,18 +296,27 @@ class Controller():
             throttleCommand = 1000
             e_x = gb.xTarget - gb.x
             e_y = gb.yTarget - gb.y
+            print("Last Target:", gb.xTarget, gb.yTarget)
+            print("Current Aileron / Elevator:", gb.aileron_middle, gb.elevator_middle)
             print("Errores:", e_x, e_y)
-            if abs(e_x)>= 15 or abs(e_y) >= 15:
-                if abs(e_x) >= 15:
-                    gb.aileron_middle += 10
-                if abs(e_y) >= 15:
-                    gb.elevator_middle -= 10
+            if abs(e_x) >= 25 or abs(e_y) >= 25:
+                if abs(e_x) >= 50:
+                    gb.aileron_middle += (25 * np.sign(e_x))
+                elif abs(e_x) >= 25:
+                    gb.aileron_middle += (15 * np.sign(e_x))
+                if abs(e_y) >= 25:
+                    gb.elevator_middle -= (25 * np.sign(e_y))
+                elif abs(e_y) >= 25:
+                    gb.elevator_middle -= (15 * np.sign(e_y))
                 self.t_inicio_maniobra = datetime.now()
+                configurator.config_target(x=xDrone, y=yDrone)
                 configurator.panels.refresh_sliders_from_globals()
+
             else:
                 print("HEcho!")
                 self.dron.set_mode("NO_INIT")
                 self.set_mode("BASICO")
+            print("New Aileron / Elevator:", gb.aileron_middle, gb.elevator_middle)
 
         self.angleError = gb.angleTarget - angleDrone
 
@@ -316,6 +331,56 @@ class Controller():
         rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
 
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+    def control_hover_bias(self):
+        # Filtros y PID control
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        gb.angleTarget = 180
+
+        zError_old = self.zError
+
+        self.zError = gb.zTarget - zDrone
+        self.angleError = gb.angleTarget - angleDrone
+
+        # Trucar gravedad intento 1:
+        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= gb.correccion_gravedad
+        # if zError < 0: print(zError)
+
+        self.zErrorI += self.zError
+
+        zErrorD = self.zError - zError_old
+        # a angulo no le vamos a meter I ni D, aqui al menos
+        zCommand = gb.KPz * self.zError + gb.KIz * self.zErrorI + gb.KDz * zErrorD
+        angleCommand = gb.KPangle * self.angleError  # P
+
+        throttleCommand = gb.throttle_middle + zCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        e_x = gb.xTarget - gb.x
+        e_y = gb.yTarget - gb.y
+        print("Errores:", e_x, e_y)
+        if abs(e_x) >= 1:
+            gb.aileron_middle += 5 * np.sign(e_x)
+        if abs(e_y) >= 1:
+            gb.elevator_middle -= 5 * np.sign(e_y)
+
+        aileronCommand = gb.aileron_middle
+        elevatorCommand = gb.elevator_middle
+
+        configurator.config_target(x=xDrone, y=yDrone)
+        configurator.panels.refresh_biases_from_globals()
+        print("AIL / ELE / RUD: ", aileronCommand, elevatorCommand, rudderCommand)
+
+        # print the X, Y, Z, angle commands
+        # if info: print("[FILTER]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xCommand, yCommand, zCommand, angleCommand))
+        # print("X:", str(xCommand))
+
+        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
+        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
     def control_basico_lfilter(self):

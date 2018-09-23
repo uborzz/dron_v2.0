@@ -64,7 +64,7 @@ gb.info = False
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
-midron = dron.create_dron("COM6", simulated=False)
+midron = dron.create_dron("COM3", simulated=False)
 controller = Controller(info=False)
 controller.initialize_general()
 
@@ -106,8 +106,8 @@ def main():
 
     # mirror seleccionado?
     rotate = False # realmente es ahora un ROTATE 180º
-    # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
-    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
+    # cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
 
     # # DESACTIVADO PROVISIONAL...
     # # Lectura frames per second
@@ -118,9 +118,10 @@ def main():
 
     # clicks
     cv2.namedWindow('frame gordo')
+    cv2.moveWindow('frame gordo', 200, 100)
     cv2.setMouseCallback('frame gordo', click_clases)
 
-    cv2.namedWindow('more info')
+    # cv2.namedWindow('more info')
 
     gb.timerStart = datetime.now()
     timer_fps = datetime.now()  # guarda tiempo de ultimo procesamiento.
@@ -157,7 +158,7 @@ def main():
         # cv2.imshow('image', frame)
 
         k = cv2.waitKey(1)
-        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller):
+        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam):
             break
 
         # Localizador
