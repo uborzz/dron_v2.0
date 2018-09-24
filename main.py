@@ -64,11 +64,12 @@ gb.info = False
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
-midron = dron.create_dron("COM3", simulated=False)
+midron = dron.create_dron("COM6", simulated=False)  # LABO
+# midron = dron.create_dron("COM3", simulated=False)  # CASA
 controller = Controller(info=False)
 controller.initialize_general()
 
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info)
+locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="labo")
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
@@ -101,13 +102,16 @@ def click_clases(event, x, y, flags, param):
         print("target angulo:")
         print(a)
 
+        controller.control_simple_pid_init()
+        print("PID de la lib simple_pid seteados valores target.")
+
 def main():
     global frame
 
     # mirror seleccionado?
     rotate = False # realmente es ahora un ROTATE 180º
-    cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2
-    # cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2 - CASA = 0 - Unica
+    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
 
     # # DESACTIVADO PROVISIONAL...
     # # Lectura frames per second

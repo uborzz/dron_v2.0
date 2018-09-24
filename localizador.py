@@ -16,7 +16,7 @@ def kernel_circular(n):
 
 class Localizador:
     # Tendra 2 bolas y una corona - Corona solo
-    def __init__(self, distancia_camara_suelo, debug=False, info=False, kalman_angle=True):
+    def __init__(self, distancia_camara_suelo, debug=False, info=False, kalman_angle=True, entorno="Labo"):
         self.debug = debug
         self.info = info
 
@@ -27,18 +27,24 @@ class Localizador:
         upper_AZUL = np.array([115, 255, 255])
 
 
-
         # LABO
-        lower_corona = np.array([20, 50, 50])
-        upper_corona = np.array([30, 255, 255])     ## <- Naranja ~ 20-25
-        lower_verde = np.array([38, 50, 50])
-        upper_verde = np.array([52, 255, 255])
+        entorno = entorno.lower()
+        if entorno == "labo":
+            lower_corona = np.array([20, 50, 50])
+            upper_corona = np.array([30, 255, 255])     ## <- Naranja ~ 20-25
+            lower_verde = np.array([38, 50, 50])
+            upper_verde = np.array([52, 255, 255])
+
+        # PROD
+        elif entorno == "maqueta":
+            pass
 
         # CASA
-        lower_corona = np.array([5, 90, 140])
-        upper_corona = np.array([25, 200, 200])
-        lower_verde = np.array([34, 125, 120])
-        upper_verde = np.array([45, 255, 255])
+        elif entorno == "casa":
+            lower_corona = np.array([5, 90, 140])
+            upper_corona = np.array([25, 200, 200])
+            lower_verde = np.array([34, 125, 120])
+            upper_verde = np.array([45, 255, 255])
 
         self.distancia_camara_suelo = distancia_camara_suelo
         self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 12, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.

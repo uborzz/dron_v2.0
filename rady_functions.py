@@ -229,6 +229,7 @@ def evalua_key(key_pressed, dron, controller, camera):
     elif k == ord('r'):
         controller.windup()
         dron.prueba_arduino_envios = 0
+        controller.control_simple_pid_init()
         dron.set_mode("DESPEGUE")
         # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
         dron.flag_vuelo = True

@@ -6,6 +6,11 @@ import numpy as np
 import math
 from datetime import datetime, timedelta
 from rady_configurator import Configurator
+from simple_pid import PID
+
+"""
+https://github.com/m-lundberg/simple-pid
+"""
 
 recorder = rfs.Recorder()
 configurator = Configurator()
@@ -14,7 +19,7 @@ class Controller():
     def __init__(self, info=False):
         self.print_info = info
         self.mode = "HOVER_BIAS"
-        self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS", "HOVER_BIAS"]
+        self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS", "HOVER_BIAS", "BASICO_PID_LIB"]
 
     def initialize_general(self):
         # butterworth X-Y
@@ -61,6 +66,8 @@ class Controller():
             elif self.mode == "BASICO_LF": return self.control_basico_lfilter()
             elif self.mode == "CALIB_BIAS":
                 return self.control_calib_bias()
+            elif self.mode == "BASICO_PID_LIB":
+                return self.control_simple_pid()
             # return self.control_con_filtros()
         elif self.dron.mode == "HOLD":
             return self.control_con_filtros()
@@ -272,6 +279,36 @@ class Controller():
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+    def control_simple_pid_init(self):
+        self.spid_x = PID(gb.KPx, gb.KIx, gb.KDx, setpoint=gb.xTarget)
+        self.spid_y = PID(gb.KPy, gb.KIy, gb.KDy, setpoint=gb.yTarget)
+        self.spid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=gb.zTarget)
+        self.spid_a = PID(gb.KPangle, gb.KIangle, gb.KDangle, setpoint=180)
+        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+
+    def control_simple_pid(self):
+        # Filtros y PID control
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        # compute commands
+        xCommand = self.spid_x(xDrone)
+        yCommand = self.spid_y(yDrone)
+        zCommand = self.spid_z(zDrone)
+        angleCommand = self.spid_a(angleDrone)
+
+
+        throttleCommand = gb.throttle_middle + zCommand
+        elevatorCommand = gb.elevator_middle - yCommand
+        aileronCommand = gb.aileron_middle + xCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
     def control_calib_bias(self):
