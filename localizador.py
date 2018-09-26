@@ -36,8 +36,11 @@ class Localizador:
             upper_verde = np.array([52, 255, 255])
 
         # PROD
-        elif entorno == "maqueta":
-            pass
+        elif entorno == "prod":  # Por ajustar.
+            lower_corona = np.array([22, 140, 120])
+            upper_corona = np.array([35, 255, 255])
+            lower_verde = np.array([38, 190, 190])
+            upper_verde = np.array([52, 255, 255])
 
         # CASA
         elif entorno == "casa":
@@ -45,6 +48,12 @@ class Localizador:
             upper_corona = np.array([25, 200, 200])
             lower_verde = np.array([34, 125, 120])
             upper_verde = np.array([45, 255, 255])
+
+        else:
+            lower_corona = np.array([20, 50, 50])
+            upper_corona = np.array([30, 255, 255])
+            lower_verde = np.array([38, 50, 50])
+            upper_verde = np.array([52, 255, 255])
 
         self.distancia_camara_suelo = distancia_camara_suelo
         self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 12, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.
@@ -57,7 +66,7 @@ class Localizador:
         # self.K_z = kf.KalmanFilter(1, 1)
 
         self.head = 0
-        self.K_head = kf.KalmanFilter(5, 5)
+        self.K_head = kf.KalmanFilter(4, 6)
 
         # self.coronaNaranja = Corona(2)
         pass

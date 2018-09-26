@@ -71,10 +71,16 @@ class Controller():
             # return self.control_con_filtros()
         elif self.dron.mode == "HOLD":
             return self.control_con_filtros()
+        elif self.dron.mode == "FLIP":
+            return self.control_flip()
+        elif self.dron.mode == "LAND":
+            return self.control_land()
+        elif self.dron.mode == "EXPLORE":
+            return self.control_explore()
         # elif self.dron.mode == "NO_INIT":
         #     if self.mode == "CALIB_BIAS":
         #         return self.control_calib_bias()
-            return()
+        return()
 
 
     def control_con_filtros(self):
@@ -290,6 +296,7 @@ class Controller():
         self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
         self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
 
+
     def control_simple_pid(self):
         # Filtros y PID control
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
@@ -302,6 +309,73 @@ class Controller():
 
 
         throttleCommand = gb.throttle_middle + zCommand
+        elevatorCommand = gb.elevator_middle - yCommand
+        aileronCommand = gb.aileron_middle + xCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+
+    def control_flip(self):
+        tn = datetime.now()
+        if tn - self.dron.t_start <= timedelta(seconds=0.1):
+            command = "%i,%i,%i,%i,1000,2000" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+            self.dron.send_command(command)
+            return (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+        elif tn - self.dron.t_start <= timedelta(seconds=0.15):
+            command = "%i,%i,%i,%i,1000,1000" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+            self.dron.send_command(command)
+            return (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+        elif tn - self.dron.t_start <= timedelta(seconds=0.20):
+            return (gb.throttle, 1000, gb.elevator, gb.rudder)
+        elif tn - self.dron.t_start <= timedelta(seconds=0.25):
+            return (gb.throttle, self.dron.valor_maniobras, gb.elevator, gb.rudder)
+        else:
+            self.dron.set_mode(self.dron.modo_previo)
+            return (gb.throttle, self.dron.valor_maniobras, gb.elevator, gb.rudder)
+
+    def control_explore(self):
+        tn = datetime.now()
+        if tn - self.dron.t_start <= self.dron.t_duracion/2:
+            return (gb.throttle+1, self.dron.valor_maniobras+150, gb.elevator, gb.rudder)
+        elif tn - self.dron.t_start <= self.dron.t_duracion:
+            return (gb.throttle, self.dron.valor_maniobras-150, gb.elevator, gb.rudder)
+        else:
+            self.dron.set_mode(self.dron.modo_previo)
+            return (gb.throttle, self.dron.valor_maniobras, gb.elevator, gb.rudder)
+
+
+    def control_land(self):
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        tn = datetime.now()
+        if tn - self.dron.t_start >= self.dron.t_duracion or zDrone <= 10:
+            self.dron.set_mode("NO_INIT")
+            throttleCommand = self.dron.valor_maniobras
+            self.dron.panic()
+            self.dron.flag_vuelo = False
+        else:
+            """
+            vx será el valor del throttle
+                tx - ti   vx - vi
+                ------- = -------
+                tf - ti   vf - vi
+            """
+            tx = tn
+            ti = self.dron.t_start
+            tf = self.dron.t_start + self.dron.t_duracion
+            vi = self.dron.valor_maniobras
+            vf = 1200
+            vx = (tx - ti) / (tf - ti) * (vf - vi) + vi
+            throttleCommand = vx
+
+        # compute commands
+        xCommand = self.spid_x(xDrone)
+        yCommand = self.spid_y(yDrone)
+        angleCommand = self.spid_a(angleDrone)
+
         elevatorCommand = gb.elevator_middle - yCommand
         aileronCommand = gb.aileron_middle + xCommand
         rudderCommand = gb.rudder_middle - angleCommand

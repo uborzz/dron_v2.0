@@ -3,6 +3,9 @@
 global KPx, KPy, KPz, KPangle, KIx, KIy, KIz, KIangle, KDx, KDy, KDz, KDangle
 global throttle_middle, aileron_middle, elevator_middle, rudder_middle, correccion_gravedad, clamp_offset
 
+# commandos
+global throttle, aileron, elevator, rudder
+
 global fps, timerStart, config_activa, info
 global refresca_params_flag
 global midron

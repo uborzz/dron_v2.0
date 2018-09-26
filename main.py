@@ -70,6 +70,7 @@ controller = Controller(info=False)
 controller.initialize_general()
 
 locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="labo")
+# locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="prod")
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
@@ -178,9 +179,9 @@ def main():
 
         # Envío comandos a Arduino-Dron
         if pack: # and estado_localizador:
-            (throttle, aileron, elevator, rudder) = pack
-            if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttle, aileron, elevator, rudder))
-            command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder)
+            (gb.throttle, gb.aileron, gb.elevator, gb.rudder) = pack
+            if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(gb.throttle, gb.aileron, gb.elevator, gb.rudder))
+            command = "%i,%i,%i,%i" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
             if midron.flag_vuelo: midron.send_command(command)
         else:
             if gb.info: print("no init control...")

@@ -3,6 +3,7 @@ import PID as pid
 import time
 import globals as gb
 from rady_configurator import Configurator
+from datetime import datetime, timedelta
 
 configurator = Configurator()
 
@@ -16,7 +17,7 @@ class Dron:
         if not self.simulated:
             self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
 
-        self.modes_available=["NO_INIT", "DESPEGUE", "HOVER", "LAND"]
+        self.modes_available=["NO_INIT", "DESPEGUE", "HOVER"]
         self.set_mode("NO_INIT")
         self.motor_on = False
         self.drone_properties = "drone.config"
@@ -36,6 +37,10 @@ class Dron:
         # thread = threading.Thread(target=self.read_from_port)
         # thread.start()
         self.flag_vuelo = False
+        self.t_start = datetime.now()
+        self.t_duracion = timedelta(seconds=1)
+        self.valor_maniobras = 0
+        self.modo_previo = None
 
     # def activar(self):
     #     while True:
@@ -98,6 +103,13 @@ class Dron:
 
     def turn_motor_OFF(self):
         pass
+
+    def prepara_modo(self, duracion, valor):
+        self.t_start = datetime.now()
+        self.t_duracion = duracion
+        self.valor_maniobras = int(valor)
+        self.modo_previo = self.mode
+
     #
     # def calibrate(self):
     #     command = "0,1000,1000,500"

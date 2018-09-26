@@ -6,7 +6,7 @@ import globals as gb
 import scipy.io
 import time
 from rady_configurator import Configurator
-from datetime import datetime
+from datetime import datetime, timedelta
 
 configurator = Configurator()
 
@@ -297,3 +297,19 @@ def evalua_key(key_pressed, dron, controller, camera):
         gb.disable_all_kalmans = not gb.disable_all_kalmans
     elif k == ord('ñ'):
         gb.solo_buscar_en_cercanias = not gb.solo_buscar_en_cercanias
+
+    # extras
+    elif k==ord('1'):
+        dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
+        dron.set_mode("FLIP")
+
+
+    elif k==ord('2'):
+        dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
+        dron.set_mode("EXPLORE")
+
+
+    elif k==ord('3'):
+        dron.prepara_modo(timedelta(seconds=4), gb.throttle)
+        dron.set_mode("LAND")
+
