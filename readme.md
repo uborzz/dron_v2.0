@@ -1,4 +1,4 @@
-# guiaburros instalacion
+# instalación
 Ubuntu 14+
 Python 3.4+
 
@@ -31,4 +31,19 @@ source dron-venv/bin/activate
 ## Instala paquetes de python necesarios
 ```bash
 pip3 install -r requirements.txt
+```
+
+
+# configuración
+A mano de momento, en el fichero main.py
+
+## seleccionar cámara
+src=0 para la primera cámara, src=1 la segunda...
+```python
+cam = Stream(**src=0**, resolution=(width, height), framerate=fps_camera).start()
+```
+
+seleccionar puerto arduino
+```python
+midron = dron.create_dron(**"/dev/ttyUSB0"**, simulated=False)
 ```

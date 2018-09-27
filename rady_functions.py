@@ -142,16 +142,20 @@ class Recorder(object):
 
     def dump_to_file(self):
         nombre_fichero = 'recordings/recording' + self.identificador + '.mat'
-        scipy.io.savemat(nombre_fichero,
-                     mdict={'time': self.timeRecord, 'x': self.xRecord, 'xFiltered': self.xFilteredRecord,
-                            'y': self.yRecord, 'yFiltered': self.yFilteredRecord, 'z': self.zRecord,
-                            'zFiltered': self.zFilteredRecord, 'angle': self.angleRecord,
-                            'angleFiltered': self.angleFilteredRecord, 'angleMovido': self.angleMovidoRecord,
-                            'angleTuneado': self.angleTuneadoRecord, 'xError': self.xErrorRecord,
-                            'yError': self.yErrorRecord, 'zError': self.zErrorRecord,
-                            'angleError': self.angleErrorRecord, 'aileron': self.aileronRecord,
-                            'elevator': self.elevatorRecord, 'throttle': self.throttleRecord,
-                            'rudder': self.rudderRecord})
+        try:
+            scipy.io.savemat(nombre_fichero,
+                         mdict={'time': self.timeRecord, 'x': self.xRecord, 'xFiltered': self.xFilteredRecord,
+                                'y': self.yRecord, 'yFiltered': self.yFilteredRecord, 'z': self.zRecord,
+                                'zFiltered': self.zFilteredRecord, 'angle': self.angleRecord,
+                                'angleFiltered': self.angleFilteredRecord, 'angleMovido': self.angleMovidoRecord,
+                                'angleTuneado': self.angleTuneadoRecord, 'xError': self.xErrorRecord,
+                                'yError': self.yErrorRecord, 'zError': self.zErrorRecord,
+                                'angleError': self.angleErrorRecord, 'aileron': self.aileronRecord,
+                                'elevator': self.elevatorRecord, 'throttle': self.throttleRecord,
+                                'rudder': self.rudderRecord})
+        except Exception as e:
+            print("dump data to file failed with exception:", str(e))
+
         if self.fps:
             diffs = np.ediff1d(self.timeRecord)
             tiempos = [sum(diffs[v * self.fps:(v * self.fps) + self.fps]) for v in range(int(diffs.shape[0] / self.fps))]
