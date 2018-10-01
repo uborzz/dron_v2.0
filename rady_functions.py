@@ -206,7 +206,7 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
     cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
 
-def evalua_key(key_pressed, dron, controller, camera):
+def evalua_key(key_pressed, dron, controller, camera, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
     k = key_pressed
     if k == ord('q'):
@@ -316,4 +316,9 @@ def evalua_key(key_pressed, dron, controller, camera):
     elif k==ord('3'):
         dron.prepara_modo(timedelta(seconds=4), gb.throttle)
         dron.set_mode("LAND")
+
+    elif k==ord('y'): # foto
+        img_name = "ss_{:%m%d%H%M%S}.jpg".format(datetime.now())
+        print("Imagen guardada:", img_name)
+        cv2.imwrite("captures/" + img_name, frame)
 

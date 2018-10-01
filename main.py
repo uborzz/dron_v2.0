@@ -64,13 +64,14 @@ gb.info = False
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 # midron = dron.Dron("COM6")
-midron = dron.create_dron("COM6", simulated=False)  # LABO
+midron = dron.create_dron("COM6", simulated=True )  # LABO
 # midron = dron.create_dron("COM3", simulated=False)  # CASA
 controller = Controller(info=False)
 controller.initialize_general()
 
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="labo")
-# locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="prod")
+# locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="labo")
+# locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=gb.info, entorno="negro")
+locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=gb.info, entorno="prod")
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
@@ -81,11 +82,12 @@ def click_clases(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
         print("Color picker!")
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        bgr = frame[y, x]
         color = hsv[y, x]
-        print(color)
-        print(color)
-        print(color)
-        print(color)
+        print("HSV", color)
+        print("HSV", color)
+        print("BGR", bgr)
+        print("BGR", bgr)
 
         # Nuevos targets
 
@@ -163,7 +165,7 @@ def main():
         # cv2.imshow('image', frame)
 
         k = cv2.waitKey(1)
-        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam):
+        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, frame=frame):
             break
 
         # Localizador

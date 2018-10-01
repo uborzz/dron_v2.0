@@ -13,7 +13,7 @@ sudo apt-get install git
 ```bash
 mkdir dron
 cd dron
-git clone https://github.com/uborzz/dron_v2.0 .
+git clone https://github.com/uborzz/dron_v2.0
 ```
 
 ## Instala pip y virtualenv
@@ -24,13 +24,13 @@ sudo pip3 install virtualenv
 
 ## Crea y activa el entorno virtual con python 3
 ```bash
-virtualenv /usr/bin/python3.* dron-venv
+virtualenv /usr/bin/python3.4 dron-venv
 source dron-venv/bin/activate
 ```
 
 ## Instala paquetes de python necesarios
 ```bash
-pip3 install -r requirements.txt
+pip3 install -r dron_v2.0/requirements.txt
 ```
 
 

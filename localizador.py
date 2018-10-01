@@ -37,15 +37,26 @@ class Localizador:
 
         # PROD
         elif entorno == "prod":  # Por ajustar.
-            lower_corona = np.array([22, 140, 120])
-            upper_corona = np.array([35, 255, 255])
-            lower_verde = np.array([38, 190, 190])
-            upper_verde = np.array([52, 255, 255])
+            lower_corona = np.array([7, 220, 220])
+            upper_corona = np.array([16, 255, 255])
+            # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
+            # upper_verde = np.array([63, 255, 255])
+            # lower_verde = np.array([152, 230, 230])  # LILA
+            # upper_verde = np.array([175, 255, 255])
+            lower_verde = np.array([95, 255, 255])  # AZUL SUBRAYADOR
+            upper_verde = np.array([110, 255, 255])
 
         # CASA
         elif entorno == "casa":
             lower_corona = np.array([5, 90, 140])
             upper_corona = np.array([25, 200, 200])
+            lower_verde = np.array([34, 125, 120])
+            upper_verde = np.array([45, 255, 255])
+
+        # NEGRO
+        elif entorno == "negro":
+            lower_corona = np.array([70, 0, 0])
+            upper_corona = np.array([110, 100, 100])
             lower_verde = np.array([34, 125, 120])
             upper_verde = np.array([45, 255, 255])
 
@@ -56,6 +67,7 @@ class Localizador:
             upper_verde = np.array([52, 255, 255])
 
         self.distancia_camara_suelo = distancia_camara_suelo
+        # self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 13.1, debug=self.debug)  # <-- Corona negra 13.1
         self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 12, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.
         # self.coronaNaranja = Corona(lower_rojo, upper_rojo, 3, tamano_real=11, debug=self.debug)      # <-- Carcasa Dron Rojo prueba.
         self.circuloVerde = Circulo(lower_verde, upper_verde, 3, debug=self.debug)

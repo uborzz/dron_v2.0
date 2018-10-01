@@ -1,6 +1,6 @@
 import cv2
 from rady_stream import Stream
-from tests_rady_stream import Stream as Stream2
+from scripts_pruebas.tests_rady_stream import Stream as Stream2
 from datetime import datetime, timedelta
 from time import sleep
 
