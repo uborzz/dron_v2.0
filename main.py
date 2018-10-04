@@ -8,6 +8,7 @@ import localizador
 from datetime import datetime, timedelta
 import json
 import math
+import config_devices as cfg
 
 # Custom libs
 import globals as gb
@@ -22,6 +23,7 @@ vpy = sys.version_info
 print("Python Version: {}.{}.{}".format(vpy[0],vpy[1],vpy[2]))
 print("OpenCV Version: " + cv2.__version__)
 print("Numpy Version: " + np.__version__)
+
 
 # Resolution
 width, height = 640, 480
@@ -62,16 +64,11 @@ configurator = Configurator()
 gb.info = False
 
 # Instancia el dron - elige el "COM"
-# if VUELA: midron = dron.Dron("COM6")
-# midron = dron.Dron("COM6")
-midron = dron.create_dron("COM6", simulated=True )  # LABO
-# midron = dron.create_dron("COM3", simulated=False)  # CASA
+midron = dron.create_dron(cfg.arduino_port, simulated=cfg.ignore_arduino)  # LABO
 controller = Controller(info=False)
 controller.initialize_general()
 
-# locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno="labo")
-# locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=gb.info, entorno="negro")
-locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=gb.info, entorno="prod")
+locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
@@ -114,7 +111,7 @@ def main():
     # mirror seleccionado?
     rotate = False # realmente es ahora un ROTATE 180º
     # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2 - CASA = 0 - Unica
-    cam = Stream(src=1, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    cam = Stream(src=cfg.camera_src, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
 
     # # DESACTIVADO PROVISIONAL...
     # # Lectura frames per second

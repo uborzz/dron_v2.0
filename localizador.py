@@ -26,6 +26,7 @@ class Localizador:
         lower_AZUL = np.array([109, 50, 50])
         upper_AZUL = np.array([115, 255, 255])
 
+        diametro_corona = 12
 
         # LABO
         entorno = entorno.lower()
@@ -34,17 +35,28 @@ class Localizador:
             upper_corona = np.array([30, 255, 255])     ## <- Naranja ~ 20-25
             lower_verde = np.array([38, 50, 50])
             upper_verde = np.array([52, 255, 255])
+            diametro_corona = 13.1
 
         # PROD
         elif entorno == "prod":  # Por ajustar.
+            lower_corona = np.array([15, 100, 150])
+            upper_corona = np.array([20, 220, 220])
+            # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
+            # upper_verde = np.array([63, 255, 255])
+            lower_verde = np.array([115, 100, 130])  # LILA
+            upper_verde = np.array([125, 235, 235])
+            diametro_corona = 13.1
+
+
+        elif entorno == "prod_saturado":  # Por ajustar.
             lower_corona = np.array([7, 220, 220])
             upper_corona = np.array([16, 255, 255])
             # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
             # upper_verde = np.array([63, 255, 255])
-            # lower_verde = np.array([152, 230, 230])  # LILA
-            # upper_verde = np.array([175, 255, 255])
-            lower_verde = np.array([95, 255, 255])  # AZUL SUBRAYADOR
-            upper_verde = np.array([110, 255, 255])
+            lower_verde = np.array([152, 230, 230])  # LILA
+            upper_verde = np.array([175, 255, 255])
+            # lower_verde = np.array([95, 255, 255])  # AZUL SUBRAYADOR
+            # upper_verde = np.array([110, 255, 255])
 
         # CASA
         elif entorno == "casa":
@@ -68,7 +80,7 @@ class Localizador:
 
         self.distancia_camara_suelo = distancia_camara_suelo
         # self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 13.1, debug=self.debug)  # <-- Corona negra 13.1
-        self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 12, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.
+        self.coronaNaranja = Corona(lower_corona, upper_corona, 3, diametro_corona, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.
         # self.coronaNaranja = Corona(lower_rojo, upper_rojo, 3, tamano_real=11, debug=self.debug)      # <-- Carcasa Dron Rojo prueba.
         self.circuloVerde = Circulo(lower_verde, upper_verde, 3, debug=self.debug)
 
