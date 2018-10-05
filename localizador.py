@@ -39,12 +39,12 @@ class Localizador:
 
         # PROD
         elif entorno == "prod":  # Por ajustar.
-            lower_corona = np.array([15, 100, 150])
-            upper_corona = np.array([20, 220, 220])
+            lower_corona = np.array([14, 70, 150])
+            upper_corona = np.array([22, 170, 220])
             # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
             # upper_verde = np.array([63, 255, 255])
-            lower_verde = np.array([115, 100, 130])  # LILA
-            upper_verde = np.array([125, 235, 235])
+            lower_verde = np.array([140, 30, 120])  # LILA
+            upper_verde = np.array([165, 100, 215])
             diametro_corona = 13.1
 
 

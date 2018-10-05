@@ -68,7 +68,7 @@ midron = dron.create_dron(cfg.arduino_port, simulated=cfg.ignore_arduino)  # LAB
 controller = Controller(info=False)
 controller.initialize_general()
 
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
+locator = localizador.Localizador(distancia_camara_suelo, debug=True, info=gb.info, entorno=cfg.entorno)
 
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
 def click_clases(event, x, y, flags, param):
@@ -111,7 +111,8 @@ def main():
     # mirror seleccionado?
     rotate = False # realmente es ahora un ROTATE 180º
     # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2 - CASA = 0 - Unica
-    cam = Stream(src=cfg.camera_src, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    # cam = Stream(src=cfg.camera_src, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
+    cam = Stream(src="http://172.17.18.124:8080/?action=stream", resolution=(width, height), framerate=fps_camera).start()  # Intento Http
 
     # # DESACTIVADO PROVISIONAL...
     # # Lectura frames per second
