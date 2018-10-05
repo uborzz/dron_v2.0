@@ -73,3 +73,35 @@ class Stream:
     def menu_config(self):
         # muestra menu configuracion params de la camara
         self.stream.set(cv2.CAP_PROP_SETTINGS, 0)
+
+    def sube_contraste(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + 1)
+
+    def baja_contraste(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - 1)
+
+    def sube_brillo(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + 1)
+
+    def baja_brillo(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - 1)
+
+    def sube_saturacion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + 1)
+
+    def baja_saturacion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - 1)
+
+    def sube_param_general(self, cv2_param):
+        valor_previo = self.stream.get(cv2_param)
+        self.stream.set(cv2_param, valor_previo + 1)
+
+    def baja_param_general(self, cv2_param):
+        valor_previo = self.stream.get(cv2_param)
+        self.stream.set(cv2_param, valor_previo - 1)

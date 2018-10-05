@@ -16,6 +16,13 @@ class Panels():
             throttle_middle, rudder_middle, aileron_middle, elevator_middle, correccion_gravedad, clamp_offset
         """
 
+        # # color
+        # cv2.namedWindow('color')
+        # cv2.resizeWindow('color', 300, 120)
+        # cv2.moveWindow('color', 200+640+400, 100+120)
+        # cv2.createTrackbar('Z Target', 'color', 20, 50, self.nothing_target)
+        # cv2.createTrackbar('A Target', 'color', 180, 360, self.nothing_target)
+
         # target
         cv2.namedWindow('target')
         cv2.resizeWindow('target', 300, 120)
