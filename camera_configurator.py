@@ -3,7 +3,6 @@ from rady_stream import Stream
 from time import sleep
 from datetime import datetime
 
-
 vs = Stream(src=1, resolution=(640, 480), framerate=25).start()
 frame = vs.read()
 punto_click = None

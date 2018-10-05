@@ -1,5 +1,6 @@
 from threading import Thread
 import cv2
+import platform
 
 """
 rady
@@ -76,32 +77,40 @@ class Stream:
 
     def sube_contraste(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
-        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + 1)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + self.SO_inc_value())
 
     def baja_contraste(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
-        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - 1)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - self.SO_inc_value())
 
     def sube_brillo(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
-        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + 1)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + self.SO_inc_value())
 
     def baja_brillo(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
-        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - 1)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - self.SO_inc_value())
 
     def sube_saturacion(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
-        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + 1)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + self.SO_inc_value())
 
     def baja_saturacion(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
-        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - 1)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - self.SO_inc_value())
 
     def sube_param_general(self, cv2_param):
         valor_previo = self.stream.get(cv2_param)
-        self.stream.set(cv2_param, valor_previo + 1)
+        self.stream.set(cv2_param, valor_previo + self.SO_inc_value())
 
     def baja_param_general(self, cv2_param):
         valor_previo = self.stream.get(cv2_param)
-        self.stream.set(cv2_param, valor_previo - 1)
+        self.stream.set(cv2_param, valor_previo - self.SO_inc_value())
+
+    def SO_inc_value(self):
+        if platform.system() == "Linux":
+            return 0.01
+        elif platform.system() == "Windows":
+            return 1
+        else:
+            return 0.1
