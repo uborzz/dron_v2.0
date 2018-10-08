@@ -45,6 +45,24 @@ class Stream:
         self.stopped = False
         self.records = list()
 
+        self.camera_params_list =   [
+                                    "CAP_PROP_CONTRAST",
+                                    "CAP_PROP_BRIGHTNESS",
+                                    "CAP_PROP_SATURATION",
+                                    "CAP_PROP_EXPOSURE",
+                                    "CAP_PROP_SHARPNESS",
+                                    "CAP_PROP_GAMMA",
+                                    "CAP_PROP_HUE",
+                                    "CAP_PROP_AUTO_EXPOSURE",
+                                    "CAP_PROP_AUTOFOCUS",
+                                    "CAP_PROP_WHITE_BALANCE_BLUE_U",
+                                    "CAP_PROP_WHITE_BALANCE_RED_V",
+                                    "CAP_PROP_BACKLIGHT",
+                                    "CAP_PROP_FOCUS",
+                                    "CAP_PROP_GAIN"
+                                    ]
+
+
         self.default_increment = self.SO_inc_value()
 
     def start(self):
@@ -111,6 +129,41 @@ class Stream:
         valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
         self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - self.default_increment)
 
+    def sube_exposicion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_EXPOSURE)
+        self.stream.set(cv2.CAP_PROP_EXPOSURE, valor_previo + 1)
+
+    def baja_exposicion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_EXPOSURE)
+        self.stream.set(cv2.CAP_PROP_EXPOSURE, valor_previo - 1)
+
+
+    ###################################################################################
+    def sube_sharpness(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SHARPNESS)
+        self.stream.set(cv2.CAP_PROP_SHARPNESS, valor_previo + self.default_increment)
+
+    def baja_sharpness(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SHARPNESS)
+        self.stream.set(cv2.CAP_PROP_SHARPNESS, valor_previo - self.default_increment)
+
+    def sube_gamma(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_GAMMA)
+        self.stream.set(cv2.CAP_PROP_GAMMA, valor_previo + self.default_increment)
+
+    def baja_gamma(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_GAMMA)
+        self.stream.set(cv2.CAP_PROP_GAMMA, valor_previo - self.default_increment)
+
+    def sube_hue(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_HUE)
+        self.stream.set(cv2.CAP_PROP_HUE, valor_previo + self.default_increment)
+
+    def baja_hue(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_HUE)
+        self.stream.set(cv2.CAP_PROP_HUE, valor_previo - self.default_increment)
+    ####################################################################################
+
 
     def sube_param_general(self, cv2_param):
         valor_previo = self.stream.get(cv2_param)
@@ -120,3 +173,8 @@ class Stream:
         valor_previo = self.stream.get(cv2_param)
         self.stream.set(cv2_param, valor_previo - self.default_increment)
 
+
+    def read_camera_params(self):
+        for param in self.camera_params_list:
+            attr = getattr(cv2, param)
+            print("{}({})".format(param, attr), ":", self.stream.get(attr))

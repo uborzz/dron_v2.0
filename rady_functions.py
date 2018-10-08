@@ -233,44 +233,14 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
 
     """
 
-
     k = key_pressed
     if k == ord('q'):
         configurator.salvar_al_salir = True
         return True
-    elif k == ord('w'):
-        camera.menu_config()
     elif k == 27:
         return True
-    elif k == ord('a'):
-        dron.panic()
-        controller.windup()  # chapuza windup
-        dron.set_mode("NO_INIT")
-        dron.flag_vuelo = False
-    elif k == ord('s'):
-        totalenvios = dron.prueba_arduino_envios
-        dron.panic()
-        controller.windup()  # chapuza windup
-        dron.flag_vuelo = False
-        leidobuffer = dron.port.read(10000)
-        leidolist = leidobuffer.splitlines()
-        print(leidobuffer)
-        print("Mandados: {} - Respuestas: {}".format(totalenvios, len(leidolist)))
-    elif k == ord('r'):
-        controller.windup()
-        dron.prueba_arduino_envios = 0
-        controller.control_simple_pid_init()
-        dron.set_mode("DESPEGUE")
-        # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
-        dron.flag_vuelo = True
-    elif k == ord('t'):
-        controller.windup()
-        dron.prueba_arduino_envios = 0
-        controller.t_inicio_maniobra = datetime.now()
-        dron.set_mode("DESPEGUE")
-        controller.set_mode("CALIB_BIAS")
-        # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
-        dron.flag_vuelo = True
+    elif k == ord('w'):
+        camera.menu_config()
     elif k == ord('c'):
         dron.calibrate2()
     elif k == ord('x'):
@@ -335,10 +305,6 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         dron.prepara_modo(timedelta(seconds=4), gb.throttle)
         dron.set_mode("LAND")
 
-    elif k==ord('y'): # foto
-        img_name = "ss_{:%m%d%H%M%S}.jpg".format(datetime.now())
-        print("Imagen guardada:", img_name)
-        cv2.imwrite("captures/" + img_name, frame)
 
 
     # PROVISIONAL - Funciones teclas si Modo del dron "CALIB_COLOR".
@@ -357,6 +323,29 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         elif k == ord('l'):
             camera.baja_saturacion()
 
+        # No parece que hagan nada con nuestro driver/camara ###############
+        elif k == ord('t'):
+            camera.sube_gamma()
+        elif k == ord('g'):
+            camera.baja_gamma()
+        elif k == ord('y'):
+            camera.sube_hue()
+        elif k == ord('h'):
+            camera.baja_hue()
+        elif k == ord('e'):
+            camera.sube_sharpness()
+        elif k == ord('d'):
+            camera.baja_sharpness()
+        ####################################################################
+
+        elif k == ord('r'):
+            camera.sube_exposicion()
+        elif k == ord('f'):
+            camera.baja_exposicion()
+
+        elif k == ord('s'):
+            camera.read_camera_params()
+
 
     # Selector config file para el PID. - Provisional funciona solo si el modo del dron no es CALIB_COLOR
     # Meter rotacion y salva/carga configs PID:
@@ -369,3 +358,39 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             configurator.select_another_config_file()
         elif k == ord('p'): # CARGA FICHERO CONFIG SELECCIONADO
             configurator.load_config_activa()
+
+
+        elif k == ord('y'):  # foto
+            img_name = "ss_{:%m%d%H%M%S}.jpg".format(datetime.now())
+            print("Imagen guardada:", img_name)
+            cv2.imwrite("captures/" + img_name, frame)
+
+        elif k == ord('a'):
+            dron.panic()
+            controller.windup()  # chapuza windup
+            dron.set_mode("NO_INIT")
+            dron.flag_vuelo = False
+        elif k == ord('s'):
+            totalenvios = dron.prueba_arduino_envios
+            dron.panic()
+            controller.windup()  # chapuza windup
+            dron.flag_vuelo = False
+            leidobuffer = dron.port.read(10000)
+            leidolist = leidobuffer.splitlines()
+            print(leidobuffer)
+            print("Mandados: {} - Respuestas: {}".format(totalenvios, len(leidolist)))
+        elif k == ord('r'):
+            controller.windup()
+            dron.prueba_arduino_envios = 0
+            controller.control_simple_pid_init()
+            dron.set_mode("DESPEGUE")
+            # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
+            dron.flag_vuelo = True
+        elif k == ord('t'):
+            controller.windup()
+            dron.prueba_arduino_envios = 0
+            controller.t_inicio_maniobra = datetime.now()
+            dron.set_mode("DESPEGUE")
+            controller.set_mode("CALIB_BIAS")
+            # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
+            dron.flag_vuelo = True
