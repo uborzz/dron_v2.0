@@ -208,6 +208,32 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
 
 def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
+
+
+    """
+        Q        |   W        |  E     |      R    |       T      |     Y
+    save config  | camara     |        |   Run     | Run bias     |  photo to
+        & quit   |   config   |        |           |    calib     |    captures
+
+
+    Modo no "CALIB_COLOR" (Normal):
+                        U      |        I      |       O      |         P
+                   save config |  save config  |    select    |     activate
+                     actual    |  in new file  |  next config |  selected config
+
+
+    Modo "CALIB_COLOR" - Modifica params del driver camara:
+                        U      |    I      |     O
+                   contraste+  | brillo+   | saturacion+
+                   ____________|___________|______________
+                        J      |    K      |     L
+                   contraste-  | brillo-   | saturacion-
+                   ____________|___________|_______________
+
+
+    """
+
+
     k = key_pressed
     if k == ord('q'):
         configurator.salvar_al_salir = True
@@ -279,16 +305,6 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         #     midron.send_command("1500,1600,1470,1500")
         #     # time.sleep(1)
 
-        # Meter rotacion y salva/carga configs PID:
-    elif k == ord('u'):
-        configurator.save_to_config_activa()
-    elif k == ord('i'):
-        configurator.create_new_config_file()
-    elif k == ord('o'):
-        configurator.select_another_config_file()
-    elif k == ord('p'):
-        configurator.load_config_activa()
-
     elif k == ord('.'):
         dron.change_mode()
     elif k == ord('-'):
@@ -299,23 +315,23 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     elif k == ord('¡'):
         localizador.toggle_debug_images()
 
-
-    # provisional
-    elif k ==ord('ç'):
+        # provisional
+    elif k == ord('ç'):
         gb.disable_all_kalmans = not gb.disable_all_kalmans
     elif k == ord('ñ'):
         gb.solo_buscar_en_cercanias = not gb.solo_buscar_en_cercanias
 
+
     # extras
-    elif k==ord('1'):
+    elif k==ord('1'):   # MODO HACER VOLTERETA
         dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
         dron.set_mode("FLIP")
 
-    elif k==ord('2'):
+    elif k==ord('2'):   # MODO SALIR Y ENTRAR DE CÁMARA     # TODO afinar.
         dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
         dron.set_mode("EXPLORE")
 
-    elif k==ord('3'):
+    elif k==ord('3'):   # MODO ATERRIZAJE
         dron.prepara_modo(timedelta(seconds=4), gb.throttle)
         dron.set_mode("LAND")
 
@@ -325,16 +341,31 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         cv2.imwrite("captures/" + img_name, frame)
 
 
-    ## PROVISIONAL - TODO Pasar a sliders
-    elif k == ord('O'):
-        camera.sube_contraste()
-    elif k == ord('L'):
-        camera.baja_contraste()
-    elif k == ord('I'):
-        camera.sube_brillo()
-    elif k == ord('K'):
-        camera.baja_brillo()
-    elif k == ord('U'):
-        camera.sube_saturacion()
-    elif k == ord('J'):
-        camera.baja_saturacion()
+    # PROVISIONAL - Funciones teclas si Modo del dron "CALIB_COLOR".
+    elif dron.mode == "CALIB_COLOR":
+        ## PROVISIONAL - TODO Pasar a sliders
+        if k == ord('u'):
+            camera.sube_contraste()
+        elif k == ord('j'):
+            camera.baja_contraste()
+        elif k == ord('i'):
+            camera.sube_brillo()
+        elif k == ord('k'):
+            camera.baja_brillo()
+        elif k == ord('o'):
+            camera.sube_saturacion()
+        elif k == ord('l'):
+            camera.baja_saturacion()
+
+
+    # Selector config file para el PID. - Provisional funciona solo si el modo del dron no es CALIB_COLOR
+    # Meter rotacion y salva/carga configs PID:
+    else:
+        if k == ord('u'):   # SALVA CONFIG EN CONFIG ACTUAL
+            configurator.save_to_config_activa()
+        elif k == ord('i'): # SALVA CONFIG EN FICHERO NUEVO
+            configurator.create_new_config_file()
+        elif k == ord('o'): # SELECCIONA CONFIG SIGUIENTE
+            configurator.select_another_config_file()
+        elif k == ord('p'): # CARGA FICHERO CONFIG SELECCIONADO
+            configurator.load_config_activa()

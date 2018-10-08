@@ -188,7 +188,7 @@ def main():
         # cv2.imshow('image', frame)
 
         k = cv2.waitKey(1)
-        if rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=frame):
+        if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=frame):
             break
 
         # Localizador
