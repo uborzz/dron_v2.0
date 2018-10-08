@@ -206,7 +206,7 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
     cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
 
-def evalua_key(key_pressed, dron, controller, camera, frame=None):
+def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
     k = key_pressed
     if k == ord('q'):
@@ -296,6 +296,10 @@ def evalua_key(key_pressed, dron, controller, camera, frame=None):
     elif k == ord('+'):
         gb.info = not gb.info
 
+    elif k == ord('¡'):
+        localizador.toggle_debug_images()
+
+
     # provisional
     elif k ==ord('ç'):
         gb.disable_all_kalmans = not gb.disable_all_kalmans
@@ -307,11 +311,9 @@ def evalua_key(key_pressed, dron, controller, camera, frame=None):
         dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
         dron.set_mode("FLIP")
 
-
     elif k==ord('2'):
         dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
         dron.set_mode("EXPLORE")
-
 
     elif k==ord('3'):
         dron.prepara_modo(timedelta(seconds=4), gb.throttle)

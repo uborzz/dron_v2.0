@@ -210,7 +210,8 @@ class Configurator:
         gb.config_activa = file_list[index]
         print(gb.config_activa, "config file has been selected! Press P to Load.")
 
-    # Chapuzas. Meter en paneles.
+
+    # Chapuzas. TODO Meter en paneles.
     def config_target(self, x=None, y=None, z=None, a=None):
         if x:
             gb.xTarget = x

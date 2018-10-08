@@ -20,12 +20,6 @@ class Localizador:
         self.debug = debug
         self.info = info
 
-        lower_rojo = np.array([175, 50, 50])
-        upper_rojo = np.array([5, 255, 255])
-
-        lower_AZUL = np.array([109, 50, 50])
-        upper_AZUL = np.array([115, 255, 255])
-
         diametro_corona = 12
 
         # LABO
@@ -33,56 +27,56 @@ class Localizador:
         if entorno == "labo":
             lower_corona = np.array([20, 50, 50])
             upper_corona = np.array([30, 255, 255])     ## <- Naranja ~ 20-25
-            lower_verde = np.array([38, 50, 50])
-            upper_verde = np.array([52, 255, 255])
+            lower_punto = np.array([38, 50, 50])
+            upper_punto = np.array([52, 255, 255])
             diametro_corona = 13.1
 
         # PROD
         elif entorno == "prod":  # Por ajustar.
             lower_corona = np.array([14, 70, 150])
             upper_corona = np.array([22, 170, 220])
-            # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
-            # upper_verde = np.array([63, 255, 255])
-            lower_verde = np.array([140, 30, 120])  # LILA
-            upper_verde = np.array([165, 100, 215])
+            # lower_punto = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
+            # upper_punto = np.array([63, 255, 255])
+            lower_punto = np.array([140, 30, 120])  # LILA
+            upper_punto = np.array([165, 100, 215])
             diametro_corona = 13.1
 
 
         elif entorno == "prod_saturado":  # Por ajustar.
             lower_corona = np.array([7, 220, 220])
             upper_corona = np.array([16, 255, 255])
-            # lower_verde = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
-            # upper_verde = np.array([63, 255, 255])
-            lower_verde = np.array([152, 230, 230])  # LILA
-            upper_verde = np.array([175, 255, 255])
-            # lower_verde = np.array([95, 255, 255])  # AZUL SUBRAYADOR
-            # upper_verde = np.array([110, 255, 255])
+            # lower_punto = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
+            # upper_punto = np.array([63, 255, 255])
+            lower_punto = np.array([152, 230, 230])  # LILA
+            upper_punto = np.array([175, 255, 255])
+            # lower_punto = np.array([95, 255, 255])  # AZUL SUBRAYADOR
+            # upper_punto = np.array([110, 255, 255])
 
         # CASA
         elif entorno == "casa":
             lower_corona = np.array([5, 90, 140])
             upper_corona = np.array([25, 200, 200])
-            lower_verde = np.array([34, 125, 120])
-            upper_verde = np.array([45, 255, 255])
+            lower_punto = np.array([34, 125, 120])
+            upper_punto = np.array([45, 255, 255])
 
         # NEGRO
         elif entorno == "negro":
             lower_corona = np.array([70, 0, 0])
             upper_corona = np.array([110, 100, 100])
-            lower_verde = np.array([34, 125, 120])
-            upper_verde = np.array([45, 255, 255])
+            lower_punto = np.array([34, 125, 120])
+            upper_punto = np.array([45, 255, 255])
 
         else:
             lower_corona = np.array([20, 50, 50])
             upper_corona = np.array([30, 255, 255])
-            lower_verde = np.array([38, 50, 50])
-            upper_verde = np.array([52, 255, 255])
+            lower_punto = np.array([38, 50, 50])
+            upper_punto = np.array([52, 255, 255])
 
         self.distancia_camara_suelo = distancia_camara_suelo
         # self.coronaNaranja = Corona(lower_corona, upper_corona, 3, 13.1, debug=self.debug)  # <-- Corona negra 13.1
         self.coronaNaranja = Corona(lower_corona, upper_corona, 3, diametro_corona, debug=self.debug)    # <-- Corona naranja habitual. Espera reduccion peso.
         # self.coronaNaranja = Corona(lower_rojo, upper_rojo, 3, tamano_real=11, debug=self.debug)      # <-- Carcasa Dron Rojo prueba.
-        self.circuloVerde = Circulo(lower_verde, upper_verde, 3, debug=self.debug)
+        self.circuloColor = Circulo(lower_punto, upper_punto, 3, debug=self.debug)
 
         # self.K_x = kf.KalmanFilter(1, 1)
         # self.K_y = kf.KalmanFilter(1, 1)
@@ -96,10 +90,19 @@ class Localizador:
         pass
 
 
+    def value_to_debug_images(self, valor):
+        self.debug = valor
+        self.circuloColor.debug = valor
+        self.coronaNaranja.debug = valor
+
+    def toggle_debug_images(self):
+        valor = not self.debug
+        self.value_to_debug_images(valor)
+        print("debug filter images to {}", str(valor))
+
     # define a clamping function
     def clamp(self, n, minimum, maximum):
         return max(min(maximum, n), minimum)
-
 
     def estima_altura(self, vista_objeto, hmax=200, corona=13):
         # corona es el tamano real en cm de la corona que buscamos
@@ -122,7 +125,7 @@ class Localizador:
 
         # self.circuloAmarillo.find(frameHSV) # encuentra punto amarillo
         self.coronaNaranja.find(frame)  # encuentra corona
-        self.circuloVerde.find(frame, roi_user=self.coronaNaranja.mask_zona)  # encuentra punto verde
+        self.circuloColor.find(frame, roi_user=self.coronaNaranja.mask_zona)  # encuentra punto verde
 
         x = self.coronaNaranja.I_x
         y = self.coronaNaranja.I_y
@@ -135,11 +138,11 @@ class Localizador:
         # Ajuste Z
         z = self.estima_altura(self.coronaNaranja.radius * 2, hmax=self.distancia_camara_suelo, corona=self.coronaNaranja.tamano_real_cm) # referencia a radio del circulo de la corona
 
-        if gb.solo_buscar_en_cercanias and self.circuloVerde.last_located >=1:
+        if gb.solo_buscar_en_cercanias and self.circuloColor.last_located >=1:
             head = self.head
             status = False
         else:
-            head = math.atan2(x-self.circuloVerde.x, y-self.circuloVerde.y) # radianes
+            head = math.atan2(x-self.circuloColor.x, y-self.circuloColor.y) # radianes
             head = int(math.degrees(head)) + 180
 
         if not gb.disable_all_kalmans:
@@ -162,7 +165,7 @@ class Localizador:
 
 
         # DRAW:
-        # cv2.circle(frame, (self.circuloVerde.I_x, self.circuloVerde.I_y), 4, (0,255,0), thickness=-1)
+        # cv2.circle(frame, (self.circuloColor.I_x, self.circuloColor.I_y), 4, (0,255,0), thickness=-1)
         # cv2.circle(frame, (self.circuloAmarillo.I_x, self.circuloAmarillo.I_y), 4, (0, 255, 255), thickness=-1)
         # cv2.circle(frame, (self.coronaNaranja.I_x, self.coronaNaranja.I_y), 4, (100, 100, 0), thickness=-1)
         # cv2.circle(frame, (int(x), int(y)), 8, (255, 0, 0), thickness=2)
@@ -212,6 +215,8 @@ class Circulo:
         # Set up the detector with default parameters.
         self.detector = cv2.SimpleBlobDetector_create(params)
 
+        self.panels = HSVRangePanels("circulo")
+
     # define a clamping function
     def clamp(self, n, minimum, maximum):
         return max(min(maximum, n), minimum)
@@ -237,8 +242,14 @@ class Circulo:
 
     def find(self, original, roi_user=None):
 
-        frame = original.copy()
+        frame = original.copy() # TODO Mucho % de mejora si hay que ganar fps. No copiar el frame.
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        ## 2018 octubre. Ajusta range if modified en sliders panel
+        if self.panels.get_flag_cambios_pendientes():
+            self.panels.desactiva_flag_cambios_pendientes()
+            self.set_range(self.panels.get_current_min_values(), self.panels.get_current_max_values())
+        ##   ####   ####   ####   ####   ####   ####   ####   ####   ##
 
         mask = cv2.inRange(frame, self.lower_limit, self.upper_limit)
         # cv2.imshow("maskk", mask)
@@ -404,6 +415,8 @@ class Corona:
         # self.detector = cv2.SimpleBlobDetector_create(params)
         self.detector = cv2.SimpleBlobDetector_create()
 
+        self.panels = HSVRangePanels("corona")
+
 
     # define a clamping function
     def clamp(self, n, minimum, maximum):
@@ -446,6 +459,12 @@ class Corona:
         frame = original.copy()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         # cv2.imshow("hsv", frame)
+
+        ## 2018 octubre. Ajusta range if modified en sliders panel
+        if self.panels.get_flag_cambios_pendientes():
+            self.panels.desactiva_flag_cambios_pendientes()
+            self.set_range(self.panels.get_current_min_values(), self.panels.get_current_max_values())
+            ##   ####   ####   ####   ####   ####   ####   ####   ####   ##
 
         if self.lower_limit[0] <= self.upper_limit[0]:
             mask = cv2.inRange(frame, self.lower_limit, self.upper_limit)
@@ -601,3 +620,71 @@ class Corona:
             # print(keypoints[0].pt, keypoints[0].size, keypoints[0].octave)
         except:
             pass
+
+
+class HSVRangePanels():
+    """
+        saca sliders control valores HSV min y max.
+        window_name: nombre ventana para los sliders.
+    """
+    def __init__(self, window_name):
+        self.window = window_name
+        self.cambios_pendientes_flag = False
+
+        #################### TODO tomar de fichero valor inicial - Automatico?
+        self.h_min = 50
+        self.h_max = 50
+        self.s_min = 50
+        self.s_max = 50
+        self.v_min = 50
+        self.v_max = 50
+        ####################
+
+        self.create_trackbars()
+
+    def create_trackbars(self):
+        cv2.namedWindow(self.window)
+        cv2.resizeWindow(self.window, 200, 300)
+        # cv2.moveWindow('target', 100, 600)
+        cv2.createTrackbar('Hue min', self.window, self.h_min, 180, self.activa_cambios_pendientes)
+        cv2.createTrackbar('Hue max', self.window, self.h_max, 180, self.activa_cambios_pendientes)
+        cv2.createTrackbar('Sat min', self.window, self.s_min, 255, self.activa_cambios_pendientes)
+        cv2.createTrackbar('Sat max', self.window, self.s_max, 255, self.activa_cambios_pendientes)
+        cv2.createTrackbar('Val min', self.window, self.v_min, 255, self.activa_cambios_pendientes)
+        cv2.createTrackbar('Val max', self.window, self.v_max, 255, self.activa_cambios_pendientes)
+
+    # TODO metodo oculta/muestra ventanas sliders
+
+    @staticmethod
+    def refresh_sliders_from_globals():
+        pass
+
+    def activa_cambios_pendientes(self, value):
+        self.cambios_pendientes_flag = True
+
+        # TODO atacar solo el cambiante.
+        self.h_min = cv2.getTrackbarPos('Hue min', self.window)
+        self.h_max = cv2.getTrackbarPos('Hue max', self.window)
+        self.s_min = cv2.getTrackbarPos('Sat min', self.window)
+        self.s_max = cv2.getTrackbarPos('Sat max', self.window)
+        self.v_min = cv2.getTrackbarPos('Val min', self.window)
+        self.v_max = cv2.getTrackbarPos('Val max', self.window)
+
+    def desactiva_flag_cambios_pendientes(self):
+        self.cambios_pendientes_flag = False
+
+    def get_flag_cambios_pendientes(self):
+        return(self.cambios_pendientes_flag)
+
+    def get_current_min_values(self):
+        """
+        :return: numpy array with [H,S,V] values (min)
+        """
+        return(np.array([self.h_min, self.s_min, self.v_min]))
+
+    def get_current_max_values(self):
+        """
+        :return: numpy array with [H,S,V] values (MAX)
+        """
+        return(np.array([self.h_max, self.s_max, self.v_max]))
+
