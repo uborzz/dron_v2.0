@@ -70,40 +70,65 @@ controller.initialize_general()
 
 locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
 
+#############################################################################
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
+#  TODO Arreglar esta guarrada y aislar bien.
+#############################################################################
 def click_clases(event, x, y, flags, param):
     global frame
-    # if event == cv2.EVENT_LBUTTONDOWN:
-    #     pass
 
-    if event == cv2.EVENT_LBUTTONUP:
-        print("Color picker!")
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        bgr = frame[y, x]
-        color = hsv[y, x]
-        print("HSV", color)
-        print("HSV", color)
-        print("BGR", bgr)
-        print("BGR", bgr)
+    # TODO Auto set range color para el locator (corona y ciruclo)
+    if midron.mode == "CALIB_COLOR":
+        if event == cv2.EVENT_LBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
 
-        # Nuevos targets
+        if event == cv2.EVENT_RBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
 
-        # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
-        gb.xTarget = x  # pixeles
-        gb.yTarget = y  # pixeles
-        controller.windupXY()
-        print("target point:")
-        print(x, y)
+    else:
+        if event == cv2.EVENT_LBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
+
+            # Nuevos targets
+
+            # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
+            gb.xTarget = x  # pixeles
+            gb.yTarget = y  # pixeles
+            controller.windupXY()
+            print("target point:")
+            print(x, y)
 
 
-        a = 180 + int(math.degrees(math.atan2(locator.coronaNaranja.x - x, locator.coronaNaranja.y - y)))
-        if a >= 360: a-=360
-        cv2.setTrackbarPos("A Target", "target", a)
-        print("target angulo:")
-        print(a)
+            a = 180 + int(math.degrees(math.atan2(locator.coronaNaranja.x - x, locator.coronaNaranja.y - y)))
+            if a >= 360: a-=360
+            cv2.setTrackbarPos("A Target", "target", a)
+            print("target angulo:")
+            print(a)
 
-        controller.control_simple_pid_init()
-        print("PID de la lib simple_pid seteados valores target.")
+            controller.control_simple_pid_init()
+            print("PID de la lib simple_pid seteados valores target.")
+#############################################################################
 
 def main():
     global frame

@@ -324,3 +324,17 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         print("Imagen guardada:", img_name)
         cv2.imwrite("captures/" + img_name, frame)
 
+
+    ## PROVISIONAL - TODO Pasar a sliders
+    elif k == ord('O'):
+        camera.sube_contraste()
+    elif k == ord('L'):
+        camera.baja_contraste()
+    elif k == ord('I'):
+        camera.sube_brillo()
+    elif k == ord('K'):
+        camera.baja_brillo()
+    elif k == ord('U'):
+        camera.sube_saturacion()
+    elif k == ord('J'):
+        camera.baja_saturacion()

@@ -17,7 +17,7 @@ class Dron:
         if not self.simulated:
             self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
 
-        self.modes_available=["NO_INIT", "DESPEGUE", "HOVER"]
+        self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOVER"]
         self.set_mode("NO_INIT")
         self.motor_on = False
         self.drone_properties = "drone.config"
@@ -76,12 +76,10 @@ class Dron:
         if modo == "DESPEGUE":
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
-        elif modo == "HOLD":
-            gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
-            configurator.config_target(z=gb.z, a=gb.head)
-        elif modo == "CALIB_BIAS":
-            gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, 180
-            configurator.config_target(a=gb.head)
+        # elif modo == "HOLD":
+        #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
+        #     configurator.config_target(z=gb.z, a=gb.head)
+
 
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1

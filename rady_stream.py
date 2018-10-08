@@ -45,6 +45,8 @@ class Stream:
         self.stopped = False
         self.records = list()
 
+        self.default_increment = self.SO_inc_value()
+
     def start(self):
         # start the thread to read frames from the video stream
         t = Thread(target=self.update, args=())
@@ -75,42 +77,46 @@ class Stream:
         # muestra menu configuracion params de la camara
         self.stream.set(cv2.CAP_PROP_SETTINGS, 0)
 
-    def sube_contraste(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
-        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + self.SO_inc_value())
-
-    def baja_contraste(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
-        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - self.SO_inc_value())
-
-    def sube_brillo(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
-        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + self.SO_inc_value())
-
-    def baja_brillo(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
-        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - self.SO_inc_value())
-
-    def sube_saturacion(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
-        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + self.SO_inc_value())
-
-    def baja_saturacion(self):
-        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
-        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - self.SO_inc_value())
-
-    def sube_param_general(self, cv2_param):
-        valor_previo = self.stream.get(cv2_param)
-        self.stream.set(cv2_param, valor_previo + self.SO_inc_value())
-
-    def baja_param_general(self, cv2_param):
-        valor_previo = self.stream.get(cv2_param)
-        self.stream.set(cv2_param, valor_previo - self.SO_inc_value())
 
     def SO_inc_value(self):
         if platform.system() == "Linux":
-            return 0.01
+            return 0.03
         elif platform.system() == "Windows":
-            return 1
+            return 3
         else:
-            return 0.1
+            return 0.3
+
+
+    def sube_contraste(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + self.default_increment)
+
+    def baja_contraste(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - self.default_increment)
+
+    def sube_brillo(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + self.default_increment)
+
+    def baja_brillo(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - self.default_increment)
+
+    def sube_saturacion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + self.default_increment)
+
+    def baja_saturacion(self):
+        valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - self.default_increment)
+
+
+    def sube_param_general(self, cv2_param):
+        valor_previo = self.stream.get(cv2_param)
+        self.stream.set(cv2_param, valor_previo + self.default_increment)
+
+    def baja_param_general(self, cv2_param):
+        valor_previo = self.stream.get(cv2_param)
+        self.stream.set(cv2_param, valor_previo - self.default_increment)
+

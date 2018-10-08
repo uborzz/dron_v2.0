@@ -2,7 +2,7 @@
 
 # vars config especificas de la maquina
 
-arduino_port = "COM6"   # /dev/ttyUSB0
+arduino_port = "/dev/tty/USB0" # "COM6" # "/dev/ttyUSB0"
 ignore_arduino = True
-camera_src = 1
+camera_src = 0
 entorno = "prod"    # prod
