@@ -2,22 +2,19 @@
 
 # backup tras cambio dron E010 por drones de protocolo bayang. Se sigue desarrollando en main.
 
-from filevideostreamEnh import FileVideoStream
-from imutils.video import FPS, VideoStream
-import argparse
-import imutils
+import json
 import sys
+import time
+from datetime import datetime, timedelta
+
 import cv2
 import numpy as np
-import time
-import dron
-import localizador
-from datetime import datetime, timedelta
 import scipy.io
-from scipy.signal import butter, lfilter, filtfilt
-import json
-from rady_stream import Stream
+from scipy.signal import butter, lfilter
 
+import dron
+import rady_locator
+from rady_stream import Stream
 
 VUELA = False
 SALVA = False
@@ -133,7 +130,7 @@ throttle_off = 1000
 # Instancia el dron - elige el "COM"
 # if VUELA: midron = dron.Dron("COM6")
 midron = dron.Dron("COM6")
-locator = localizador.Localizador(distancia_camara_suelo, debug=False)
+locator = rady_locator.Localizador(distancia_camara_suelo, debug=False)
 
 def windup():
     global xErrorI, yErrorI, zErrorI, angleErrorI

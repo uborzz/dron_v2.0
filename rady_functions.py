@@ -1,5 +1,17 @@
 # -*- coding: utf-8 -*-
 
+### FUNCTIONS
+# Funciones auxiliares y clases provisionales, antes de pasarlas a un módulo aparte.
+#
+# Lo más importante...
+# . get_undistort_map toma un frame y devuelve otro corregido con los parametros de calibracion de la camara
+# . Recorder se encarga de ir almacenando valores previos en arrays y salvar a fichero para analisis
+#       en realidad tambien se reutiliza para acceder a historia para filtros y demás.
+# Tambien hay funciones para pintar info sobre el frame o sobre paneles.
+# . evalua_key es un mega if-elif que se encarga de resolver tareas asignadas keys del teclado
+#
+# - rady
+
 import numpy as np
 import cv2
 import globals as gb

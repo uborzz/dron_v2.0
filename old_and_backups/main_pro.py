@@ -2,23 +2,20 @@
 
 # pruebas en paralelo para desarrollo de trackeo con cámara no-cenital o composición de varias cámaras
 
-from filevideostreamEnh import FileVideoStream
-from imutils.video import FPS, VideoStream
-import argparse
-import imutils
-import sys
-import cv2
-import numpy as np
-import time
-import dron
-import localizador
-from datetime import datetime, timedelta
-import scipy.io
-from scipy.signal import butter, lfilter, filtfilt
 import json
 import math
-from rady_stream import Stream
+import sys
+import time
+from datetime import datetime, timedelta
 
+import cv2
+import numpy as np
+import scipy.io
+from scipy.signal import butter, lfilter, filtfilt
+
+import dron
+import rady_locator
+from rady_stream import Stream
 
 VUELA = False
 SALVA = False
@@ -141,7 +138,7 @@ throttle_off = 1000
 midron = dron.Dron("COM6")
 
 info = True
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=info)
+locator = rady_locator.Localizador(distancia_camara_suelo, debug=False, info=info)
 
 
 def windup():

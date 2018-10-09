@@ -1,12 +1,21 @@
+# -*- coding: utf-8 -*-
+
+### STREAM
+# Aisla en un hilo aparte la captura de frames, y ofrece un método para pedir el último frame capturado.
+#
+# implementa algunos métodos para extraer/modificar la config de la cámara (del driver, si lo permite)
+#   TODO implementar cnfiguracion desde fichero
+# "menu_config" - muestra menu de configuracion (en Windows)
+# probado con C270 de Logitech
+#
+# - rady (inspirado en webcamvideostream de pyimagesearch para raspi camera.)
+
+
 from threading import Thread
 import cv2
 import platform
 
 """
-rady
-
-basado en webcamvideostream de pyimagesearch para raspi camera.
-
 Camera props:
     CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
     CAP_PROP_POS_FRAMES 0-based index of the frame to be decoded/captured next.

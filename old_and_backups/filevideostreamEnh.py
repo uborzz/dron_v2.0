@@ -1,33 +1,27 @@
-# import the necessary packages
+# -*- coding: utf-8 -*-
+
+### Buffer frames de un video en cola en un hilo para tratamiento en otro hilo
+# A medias. - Lo paso a
+#
+# - mods by rady
+
 from threading import Thread
-import sys
 import cv2
-
-# import the Queue class from Python 3
-if sys.version_info >= (3, 0):
-    from queue import Queue
-
-# otherwise, import the Queue class for Python 2.7
-else:
-    from Queue import Queue
+from queue import Queue
 
 class FileVideoStream:
 
     def __init__(self, path, res_w, res_h, fps, queueSize=128):
-        # initialize the file video stream along with the boolean
-        # used to indicate if the thread should be stopped or not
         self.stream = cv2.VideoCapture(path)
         self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, res_w)
         self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, res_h)
         self.stream.set(cv2.CAP_PROP_FPS, fps)
         self.stopped = False
 
-        # initialize the queue used to store frames read from
-        # the video file
         self.Q = Queue(maxsize=queueSize)
 
     def start(self):
-        # start a thread to read frames from the file video stream
+        # thread to read frames from the file video stream
         t = Thread(target=self.update, args=())
         t.daemon = True
         t.start()

@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+
+### CONFIGURATOR
+# Clase que se encarga de salvar y cargar las configuraciones de valores de los PID y BIAS y demás parámetros.
+#   Útil si se quieren cambiar valores de PID para diferentes lógicas de control.
+#
+# Muestra, refresca y mantiene los sliders de tuneo de PID, BIAS y altura/orientación objetivo.
+#
+# - rady
+
 import json
 import globals as gb
 from datetime import datetime
@@ -223,9 +233,3 @@ class Configurator:
         if a:
             gb.angleTarget = a
             cv2.setTrackbarPos('A Target', 'target', a)
-
-
-
-
-
-

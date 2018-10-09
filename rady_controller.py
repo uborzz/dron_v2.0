@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+
+### CONTROLLER
+# Implementa las lógicas de control del dron, aisladas en diferentes funciones alternativas
+# Mediante ifs y según el modo de control que indique el programa principal o el usuario s
+# se llamará a un bloque (método) u otro.
+#
+# Dentro de cada bloque de control se lee la posición del dron (globales) y se estiman
+# los siguientes comandos a enviara al dron para corregir su posición, normalmente usando PIDs
+#
+# - rady
+
+
 import rady_functions as rfs
 import dron
 from scipy.signal import butter, lfilter, filtfilt

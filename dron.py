@@ -1,13 +1,22 @@
-import serial
-import PID as pid
+# -*- coding: utf-8 -*-
+
 import time
+from datetime import datetime, timedelta
+import serial
 import globals as gb
 from rady_configurator import Configurator
-from datetime import datetime, timedelta
 
 configurator = Configurator()
 
 class Dron:
+    """
+        Dron no se esta usando como representacion del propio dron.
+        Se estan usando globales que recogen la info del localizador para representar
+            la posicion del dron -de momento-
+        La comunicacion serial sale a traves de esta clase.
+            Los comandos/acciones enviados al dron estan programados aqui.
+            El control está en rady_controller
+    """
 
     def __init__(self, serial_port, simulated=False):
         baud_rate = 115200
@@ -27,9 +36,9 @@ class Dron:
         self.pos_z = 0
         self.pos_head = 0
 
-        self.x_pid = pid.PID()
-        self.y_pid = pid.PID()
-        self.z_pid = pid.PID()
+        # self.x_pid = PID.PID()
+        # self.y_pid = PID.PID()
+        # self.z_pid = PID.PID()
 
         self.prueba_arduino_envios = 0
         self.last_command_received = "1000,1000,1000,1000"
@@ -89,11 +98,11 @@ class Dron:
         print("Modo dron elegido:", self.mode)
 
     def turn_motors_ON(self):
-        self.z_pid.reset()
-        self.y_pid.reset()
-        self.x_pid.reset()
+        # self.z_pid.reset()
+        # self.y_pid.reset()
+        # self.x_pid.reset()
         self.motor_on = True
-        # throttle=throttle estable a manota O_o
+        pass
 
     def turn_motors_OFF(self):
         self.motor_on = False
@@ -179,11 +188,12 @@ class Dron:
         # print(ts)
 
     def control(self):
-        if self.motor_on:
-            if self.mode == "HOVER":
-                self.z_pid.update(self.pos_z)
-                # self.y_pid.update(self.pos_y)
-                # self.x_pid.update(self.pos_x)
+        # if self.motor_on:
+        #     if self.mode == "HOVER":
+        #         self.z_pid.update(self.pos_z)
+        #         # self.y_pid.update(self.pos_y)
+        #         # self.x_pid.update(self.pos_x)
+        pass
 
     def panic(self):
         command = "1000,1000,1000,1000"

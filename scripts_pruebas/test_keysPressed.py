@@ -1,3 +1,9 @@
+
+### PRUEBAS: KeyPressed
+# Pruebas construccion comandos para arduino presionando keys del teclado, para control manual.
+##
+# - rady
+
 import serial
 import time
 import cv2

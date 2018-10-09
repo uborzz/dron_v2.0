@@ -1,16 +1,14 @@
 
-from filevideostreamEnh import FileVideoStream
-from imutils.video import FPS
-import argparse
-import imutils
 import sys
+import time
+
 import cv2
 import numpy as np
-import time
-import queue
-import PID
-import dron
+from imutils.video import FPS
+from versiones_backups import PID
 
+import dron
+from old_and_backups.filevideostreamEnh import FileVideoStream
 
 # Version INFO
 vpy = sys.version_info

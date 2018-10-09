@@ -1,7 +1,18 @@
+# -*- coding: utf-8 -*-
+
+### TOOL: PRINT KEY PRESSED
+# Canta codigo ASCII de la key apretada
+#
+# Como usar:
+# Apretar las teclas teniendo activa la ventana principal del streaming
+#
+# Info:
+# Ojo! Diferencias windows-ubuntu trato teclas shift, ctrl y alt.
+#
+# - rady
+
 import cv2
 from rady_stream import Stream
-from time import sleep
-from datetime import datetime
 
 vs = Stream(src=1, resolution=(640, 480), framerate=25).start()
 frame = vs.read()

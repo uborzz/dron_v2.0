@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+### LOCATOR
+# Clases para localización del Dron
+# . Circulo: Blobdetector que busca un punto de valor HSV comprendido entre unos umbrales
+# . Corona: Buscador del mayor contorno de valor HSV comprendido entre unos umbrales
+# . Localizador: instancia 1x circulo y 1x corona y estima a partir de ellos la orientacion del dron
+# Las clases anteriores tienen filtros por cercanía de localización anterior y suavizado por kalman.
+# . HSVRangePanels: clase que pueden utilizar Circulo y Corona para implementar un panel con sliders de sus parametros.
+#
+# - rady
+
 import sys
 import cv2
 import numpy as np
@@ -32,13 +44,11 @@ class Localizador:
             diametro_corona = 13.1
 
         # PROD
-        elif entorno == "prod":  # Por ajustar.
-            lower_corona = np.array([14, 70, 150])
-            upper_corona = np.array([22, 170, 220])
-            # lower_punto = np.array([56, 255, 255]) # TRUE VERDE ORIGINAL
-            # upper_punto = np.array([63, 255, 255])
-            lower_punto = np.array([140, 30, 120])  # LILA
-            upper_punto = np.array([165, 100, 215])
+        elif entorno == "prod":
+            lower_corona = np.array([16, 234, 246])
+            upper_corona = np.array([24, 255, 255])
+            lower_punto = np.array([137, 0, 168])  # LILA
+            upper_punto = np.array([162, 172, 255])
             diametro_corona = 13.1
 
 
@@ -355,7 +365,7 @@ class Circulo:
         # print(x, y)
         cv2.circle(original, (self.I_x, self.I_y), 5, (255, 0, 255), -1)
         # cv2.imshow("keypointsCirculo", original)
-
+        return(mask_inv)
 
 
 class Corona:
@@ -620,6 +630,8 @@ class Corona:
             # print(keypoints[0].pt, keypoints[0].size, keypoints[0].octave)
         except:
             pass
+
+        return(mask_inv)
 
 
 class HSVRangePanels():

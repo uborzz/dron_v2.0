@@ -4,7 +4,7 @@ import sys
 import cv2
 import numpy as np
 import time
-import localizador
+import rady_locator
 from datetime import datetime, timedelta
 import json
 import math
@@ -68,7 +68,9 @@ midron = dron.create_dron(cfg.arduino_port, simulated=cfg.ignore_arduino)  # LAB
 controller = Controller(info=False)
 controller.initialize_general()
 
-locator = localizador.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
+locator = rady_locator.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
+
+
 
 #############################################################################
 #  Funcionamiento deberia ser segun el modo, provisionalmente aqui
@@ -158,6 +160,8 @@ def main():
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
     while True:
+
+        print()
 
         toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
         if not toca_procesar:

@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+
+### TOOL: H HISTOGRAM PLOTTER
+# plotea histogramas del hue (hsv) de las imagenes que se encuentren en la carpeta captures
+#
+# Como usar:
+# tecla Q: siguiente imagen
+#
+# Info:
+# rango opencv para valores HSV: H[0, 180], S[0, 255], V[0, 255]
+#
+# - rady
+
 import cv2
 import os
 import matplotlib.pyplot as plt
