@@ -165,15 +165,19 @@ class Recorder(object):
                                 'angleError': self.angleErrorRecord, 'aileron': self.aileronRecord,
                                 'elevator': self.elevatorRecord, 'throttle': self.throttleRecord,
                                 'rudder': self.rudderRecord})
+            print("Fichero guardado con recordings: ", nombre_fichero)
         except Exception as e:
             print("dump data to file failed with exception:", str(e))
 
-        if self.fps:
+        if self.fps and len(self.timeRecord):
+            print("tiempos...")
             diffs = np.ediff1d(self.timeRecord)
             tiempos = [sum(diffs[v * self.fps:(v * self.fps) + self.fps]) for v in range(int(diffs.shape[0] / self.fps))]
             print(tiempos)
             print(np.mean(tiempos))
-        print("Fichero guardado con recordings: ", nombre_fichero)
+        else:
+            print("No hay datos almacenados en el tiempo...")
+
 
 
 def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):

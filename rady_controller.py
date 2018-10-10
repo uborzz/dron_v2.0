@@ -31,7 +31,7 @@ configurator = Configurator()
 class Controller():
     def __init__(self, info=False):
         self.print_info = info
-        self.mode = "HOVER_BIAS"
+        self.mode = "BASICO"
         self.modes_available = ["BASICO", "BASICO_LF", "CALIB_BIAS", "HOVER_BIAS", "BASICO_PID_LIB"]
 
     def initialize_general(self):

@@ -8,7 +8,7 @@ import rady_locator
 from datetime import datetime, timedelta
 import json
 import math
-import config_devices as cfg
+import config.config_devices as cfg
 
 # Custom libs
 import globals as gb
@@ -44,7 +44,7 @@ gb.disable_all_kalmans = False
 gb.solo_buscar_en_cercanias = True
 
 # params
-distancia_camara_suelo = 200
+distancia_camara_suelo = cfg.altura_camara
 gb.refresca_params_flag = False
 
 
@@ -161,8 +161,6 @@ def main():
 
     while True:
 
-        print()
-
         toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
         if not toca_procesar:
             continue
@@ -228,14 +226,17 @@ def main():
 
     cv2.destroyAllWindows()
 
-    midron.panic()
-    midron.close()
-
     recorder.dump_to_file()
 
     if configurator.salvar_al_salir:
         configurator.save_config_file(gb.config_activa)
 
+        # Provisional...
+        locator.save_values_to_file()
+
+    if not cfg.ignore_arduino:
+        midron.panic()
+        midron.close()
 
 if __name__ == '__main__':
     main()

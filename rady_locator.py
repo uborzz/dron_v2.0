@@ -43,12 +43,18 @@ class Localizador:
             upper_punto = np.array([52, 255, 255])
             diametro_corona = 13.1
 
-        # PROD
+        # PROD - PROVISIONA FICHEROS
         elif entorno == "prod":
-            lower_corona = np.array([16, 234, 246])
-            upper_corona = np.array([24, 255, 255])
-            lower_punto = np.array([137, 0, 168])  # LILA
-            upper_punto = np.array([162, 172, 255])
+            try:    # existen ficheros
+                lower_corona = np.loadtxt('config/config_locator/lower_corona.txt', dtype=int)
+                upper_corona = np.loadtxt('config/config_locator/upper_corona.txt', dtype=int)
+                lower_punto = np.loadtxt('config/config_locator/lower_punto.txt', dtype=int)
+                upper_punto = np.loadtxt('config/config_locator/upper_punto.txt', dtype=int)
+            except:
+                lower_corona = np.array([16, 234, 246])
+                upper_corona = np.array([24, 255, 255])
+                lower_punto = np.array([137, 0, 168])  # LILA
+                upper_punto = np.array([162, 172, 255])
             diametro_corona = 13.1
 
 
@@ -98,6 +104,17 @@ class Localizador:
 
         # self.coronaNaranja = Corona(2)
         pass
+
+    ################ PROVISIONAL #######################
+    def save_values_to_file(self):
+        np.savetxt('config/config_locator/upper_corona.txt', self.coronaNaranja.upper_limit, fmt='%d')
+        np.savetxt('config/config_locator/lower_corona.txt', self.coronaNaranja.lower_limit, fmt='%d')
+        np.savetxt('config/config_locator/upper_punto.txt', self.circuloColor.upper_limit, fmt='%d')
+        np.savetxt('config/config_locator/lower_punto.txt', self.circuloColor.upper_limit, fmt='%d')
+        print("Saving locator values to files...")
+
+    ####################################################
+
 
 
     def value_to_debug_images(self, valor):

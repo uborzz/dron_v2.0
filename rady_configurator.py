@@ -149,7 +149,7 @@ class Configurator:
 
     def initialize(self, file_name):
         self.salvar_al_salir = False
-        with open("config/" + file_name, "r") as file:
+        with open("config/config_pid/" + file_name, "r") as file:
             config_data = json.load(file)
         self.write_to_globals(config_data["pid"], config_data["bias"])
         gb.config_activa = file_name
@@ -157,7 +157,7 @@ class Configurator:
 
     def load_config_file(self, file_name):
         # Lee Config BIAS y PID
-        with open("config/" + file_name, "r") as file:
+        with open("config/config_pid/" + file_name, "r") as file:
             config_data = json.load(file)
         self.write_to_globals(config_data["pid"], config_data["bias"])
         self.panels.refresh_sliders_from_globals()
@@ -196,7 +196,7 @@ class Configurator:
         config_data["pid"] = pid_data
         config_data["bias"] = bias_data
 
-        with open('config/' + file_name, 'w') as file:
+        with open('config/config_pid/' + file_name, 'w') as file:
             json.dump(config_data, file, sort_keys=True, indent=4)
 
     def save_to_config_activa(self):
@@ -213,7 +213,7 @@ class Configurator:
         print("NEW CONFIG FILE!", name, "has been created!")
 
     def select_another_config_file(self):
-        file_list = os.listdir("config")
+        file_list = os.listdir("config/config_pid")
         index = file_list.index(gb.config_activa) + 1
         if index >= len(file_list):
             index = 0
