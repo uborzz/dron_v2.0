@@ -110,7 +110,7 @@ class Localizador:
         np.savetxt('config/config_locator/upper_corona.txt', self.coronaNaranja.upper_limit, fmt='%d')
         np.savetxt('config/config_locator/lower_corona.txt', self.coronaNaranja.lower_limit, fmt='%d')
         np.savetxt('config/config_locator/upper_punto.txt', self.circuloColor.upper_limit, fmt='%d')
-        np.savetxt('config/config_locator/lower_punto.txt', self.circuloColor.upper_limit, fmt='%d')
+        np.savetxt('config/config_locator/lower_punto.txt', self.circuloColor.lower_limit, fmt='%d')
         print("Saving locator values to files...")
 
     ####################################################
