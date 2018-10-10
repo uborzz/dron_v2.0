@@ -225,7 +225,7 @@ class Circulo:
         # Set up the detector with default parameters.
         self.detector = cv2.SimpleBlobDetector_create(params)
 
-        self.panels = HSVRangePanels("circulo")
+        self.panels = HSVRangePanels("circulo", self.lower_limit, self.upper_limit)
 
     # define a clamping function
     def clamp(self, n, minimum, maximum):
@@ -425,7 +425,7 @@ class Corona:
         # self.detector = cv2.SimpleBlobDetector_create(params)
         self.detector = cv2.SimpleBlobDetector_create()
 
-        self.panels = HSVRangePanels("corona")
+        self.panels = HSVRangePanels("corona", self.lower_limit, self.upper_limit)
 
 
     # define a clamping function
@@ -639,17 +639,13 @@ class HSVRangePanels():
         saca sliders control valores HSV min y max.
         window_name: nombre ventana para los sliders.
     """
-    def __init__(self, window_name):
+    def __init__(self, window_name, initial_min, initial_max):
         self.window = window_name
         self.cambios_pendientes_flag = False
 
         #################### TODO tomar de fichero valor inicial - Automatico?
-        self.h_min = 50
-        self.h_max = 50
-        self.s_min = 50
-        self.s_max = 50
-        self.v_min = 50
-        self.v_max = 50
+        self.h_min, self.s_min, self.v_min = initial_min
+        self.h_max, self.s_max, self.v_max = initial_max
         ####################
 
         self.create_trackbars()

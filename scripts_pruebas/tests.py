@@ -1,4 +1,4 @@
-import dron
+# import dron
 from time import sleep
 import cv2
 import cv2.aruco as aruco
@@ -54,3 +54,12 @@ print(xDroneFiltered)
 xFiltered = filtfilt(b, a, largo[-10:])
 xDroneFiltered = xFiltered[-1]
 print(xDroneFiltered)
+
+print("---------------------------------------")
+
+a = np.array([2,3,4])
+z, x, c = a
+print(type(a), a)
+print(type(z), z)
+Z = int(z)
+print(type(Z), Z)
