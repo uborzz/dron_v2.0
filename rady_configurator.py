@@ -9,7 +9,7 @@
 # - rady
 
 import json
-import globals as gb
+import globales as gb
 from datetime import datetime
 import os
 import cv2

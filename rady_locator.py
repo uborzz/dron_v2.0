@@ -17,7 +17,7 @@ import time
 import queue
 import kalman_jc as kf
 import math
-import globals as gb
+import globales as gb
 
 def kernel_cuadrado(n):
     return np.ones((n, n), np.uint8)

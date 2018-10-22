@@ -3,7 +3,7 @@
 import time
 from datetime import datetime, timedelta
 import serial
-import globals as gb
+import globales as gb
 from rady_configurator import Configurator
 
 configurator = Configurator()
@@ -107,9 +107,6 @@ class Dron:
     def turn_motors_OFF(self):
         self.motor_on = False
         # value update?
-
-    def turn_motor_OFF(self):
-        pass
 
     def prepara_modo(self, duracion, valor):
         self.t_start = datetime.now()

@@ -1,7 +1,7 @@
 {
     "bias": {
         "aileron": 1531,
-        "correccion_gravedad": 20,
+        "correccion_gravedad": 10,
         "elevator": 1488,
         "rudder": 1500,
         "throttle": 1523
@@ -10,11 +10,11 @@
         "KDangle": 0,
         "KDx": 10,
         "KDy": 11,
-        "KDz": 67,
+        "KDz": 83,
         "KIangle": 0.0,
         "KIx": 0.01,
         "KIy": 0.01,
-        "KIz": 0.1,
+        "KIz": 0.06,
         "KPangle": 2,
         "KPx": 0.41,
         "KPy": 0.41,

@@ -11,7 +11,7 @@ import math
 import config.config_devices as cfg
 
 # Custom libs
-import globals as gb
+import globales as gb
 from rady_stream import Stream
 import rady_functions as rfs
 import dron
@@ -159,6 +159,11 @@ def main():
     timer_fps = datetime.now()  # guarda tiempo de ultimo procesamiento.
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
+
+    # PROVISIONAL - Pruebas limites
+    forcing_down = False
+    consecutive_frames_out_of_limits = 0
+
     while True:
 
         toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
@@ -200,8 +205,47 @@ def main():
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
+
+
+        #################################################
+        ####### Logica      -         Provisional #######
+        #################################################
+
+        # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
+        # Force down
+        try:
+            if ((controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE") and (gb.z >= 50)):
+                consecutive_frames_out_of_limits += 1
+                if not forcing_down and consecutive_frames_out_of_limits >= 3:
+                    print("FORCING DRON: A BAJAR!!!")
+                    # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
+                    midron.set_mode("HOLD")
+                    # controller.set_mode("BASICO_LIMIT_Z")
+                    # controller.set_mode("BASICO_CLAMP_THROTTLE")
+                    controller.set_mode("BASICO_DISABLE_GFACTOR")
+                    forcing_down = True
+            else:
+                consecutive_frames_out_of_limits = 0
+
+            if forcing_down and gb.z <= gb.zTarget+10:
+                print("DESCATIVANDO FORCING: Windup Z, Activando control: BASICO")
+                forcing_down = False
+                controller.windupZ()
+                controller.set_mode("BASICO")
+        except:
+            forcing_down = False
+            controller.set_mode("BASICO")
+
+
+        #################################################
+        #################################################
+        #################################################
+
+
+
         # Comandos de control:
         pack = controller.control()
+        # Comandos de control:
 
 
         # Envío comandos a Arduino-Dron

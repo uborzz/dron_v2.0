@@ -1,5 +1,5 @@
 from datetime import datetime
-import globals as gb
+import globales as gb
 from rady_configurator import Configurator
 
 ## prueba formateo fecha -> str

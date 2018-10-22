@@ -114,6 +114,10 @@ class Stream:
             return 0.3
 
 
+    def set_fps(self, fps):
+        self.stream.set(cv2.CAP_PROP_FPS, fps)
+
+
     def sube_contraste(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
         self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + self.default_increment)

@@ -14,7 +14,7 @@
 
 import numpy as np
 import cv2
-import globals as gb
+import globales as gb
 import scipy.io
 import time
 from rady_configurator import Configurator
