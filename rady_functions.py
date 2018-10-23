@@ -16,6 +16,7 @@ import numpy as np
 import cv2
 import globales as gb
 import scipy.io
+import math
 import time
 from rady_configurator import Configurator
 from datetime import datetime, timedelta
@@ -225,26 +226,55 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
 def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
 
-
     """
+
         Q        |   W        |  E     |      R    |       T      |     Y
     save config  | camara     |        |   Run     | Run bias     |  photo to
         & quit   |   config   |        |           |    calib     |    captures
+    |____________|____________|________|___________|______________|_____________
+        A        |   S        |
+      Parada     | Paro       |
+        Soft     |   Gordo    |                                     [[Mandos]]
+    |____________|____________|____________|            ____________|____________|____________|
+        Z        |   X        |   C        |           |   B        |   N        |   M        |
+        BIND     | Calibra    | Calibra    |           | Mandos     | Mandos     | Mandos     |
+     No Bwhoop   |IMU Bwhoop  |IMU Eachine |           | (a-i) / /  | (aba) | |  |  (a-d)\ \  |
+
+
+                                            |____________|
+                                            |   !        |
+                                            | on-off     |
+                                            |  IMSHOWS   |
+                 [[MODOS]]                      |____________|____
+                                                |   +        |
+                                                | on-off     |
+                                                |CONSOLE INFO|
+                     ____________|______________|____________|
+                    |   ñ        |   ´        |   ç        |
+                    | on-off     |            | on-off     |
+                    |  Cercania  |            |  Kalman L  |
+            ________|____________|____________|____________|
+            |   ,        |   .        |   -        |
+            |            |     Modo   |   Modo     |
+            |            |   Dron     |    Control |
 
 
     Modo no "CALIB_COLOR" (Normal):
-                        U      |        I      |       O      |         P
-                   save config |  save config  |    select    |     activate
-                     actual    |  in new file  |  next config |  selected config
+                ___________________________________________________
+                U      |        I      |       O      |         P
+           save config |  save config  |    select    |     activate
+             actual    |  in new file  |  next config |  selected config
 
 
     Modo "CALIB_COLOR" - Modifica params del driver camara:
+                    _______________________________________
                         U      |    I      |     O
                    contraste+  | brillo+   | saturacion+
                    ____________|___________|______________
                         J      |    K      |     L
                    contraste-  | brillo-   | saturacion-
                    ____________|___________|_______________
+
 
 
     """
@@ -410,3 +440,56 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             controller.set_mode("CALIB_BIAS")
             # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
             dron.flag_vuelo = True
+
+
+def evalua_click(event, x, y, dron, controller, localizador, frame):
+    # TODO Auto set range color para el locator (corona y ciruclo)
+    if dron.mode == "CALIB_COLOR":
+        if event == cv2.EVENT_LBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
+
+        if event == cv2.EVENT_RBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
+
+    else:
+        if event == cv2.EVENT_LBUTTONUP:
+            print("Color picker!")
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            bgr = frame[y, x]
+            color = hsv[y, x]
+            print("HSV", color)
+            print("HSV", color)
+            print("BGR", bgr)
+            print("BGR", bgr)
+
+            # Nuevos targets
+
+            # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
+            gb.xTarget = x  # pixeles
+            gb.yTarget = y  # pixeles
+            controller.windupXY()
+            print("target point:")
+            print(x, y)
+
+            a = 180 + int(math.degrees(math.atan2(localizador.coronaNaranja.x - x, localizador.coronaNaranja.y - y)))
+            if a >= 360: a -= 360
+            cv2.setTrackbarPos("A Target", "target", a)
+            print("target angulo:")
+            print(a)
+
+            controller.control_simple_pid_init()
+            print("PID de la lib simple_pid seteados valores target.")

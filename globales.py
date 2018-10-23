@@ -18,3 +18,5 @@ global xTarget, yTarget, zTarget, angleTarget
 
 # provisional
 global kalman_angle, disable_all_kalmans, solo_buscar_en_cercanias
+
+global frame

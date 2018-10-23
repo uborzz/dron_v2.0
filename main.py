@@ -3,11 +3,8 @@
 import sys
 import cv2
 import numpy as np
-import time
 import rady_locator
 from datetime import datetime, timedelta
-import json
-import math
 import config.config_devices as cfg
 
 # Custom libs
@@ -18,12 +15,16 @@ import dron
 from rady_controller import Controller
 from rady_configurator import Configurator
 
+
+####################################################################
+###############  PREPARACIÓN e INICIALIZACION  #####################
+####################################################################
+
 # Version INFO
 vpy = sys.version_info
 print("Python Version: {}.{}.{}".format(vpy[0],vpy[1],vpy[2]))
 print("OpenCV Version: " + cv2.__version__)
 print("Numpy Version: " + np.__version__)
-
 
 # Resolution
 width, height = 640, 480
@@ -31,13 +32,13 @@ gb.fps = 20  # Sampleo de imagenes. - Ajustado a ojímetro para el tiempo de pro
 fps_camera = 25 # a mano, fps de captura de la camara (va en otro hilo).
 # fps_camera = int(fps + fps*0.15)  # framerate de captura camara (camara la llevo a otro hilo) - Un poco mas alto que el sampleo
 
-
+# matriz y coefs. de distorsión de la lente
 undistort, map1, map2, roi = rfs.get_undistort_map()
 
 timestamp = "{:%Y_%m_%d_%H_%M}".format(datetime.now())
 print("Timestamp:", timestamp)
 
-frame = None
+gb.frame = None
 panel = np.zeros((400,400,3), np.uint8)
 gb.kalman_angle = True
 gb.disable_all_kalmans = False
@@ -48,105 +49,42 @@ distancia_camara_suelo = cfg.altura_camara
 gb.refresca_params_flag = False
 
 
-# Target (inicial)
+# Target (inicial) - Provisional
 gb.xTarget = 320 # pixeles
 gb.yTarget = 240 # pixeles
 gb.zTarget = 20 # cm  # Pruebas corona hechas con Z 20
 gb.angleTarget = 180 # grados
 
 
-recorder = rfs.Recorder()
+recorder = rfs.Recorder()   # salva matriz de datos para analisis
 recorder.configure(identificador=timestamp, fps=gb.fps)
 
-configurator = Configurator()
+configurator = Configurator()   # clase para configuracion con sliders
 
+gb.info = False     # muestra/oculta info en consola
 
-gb.info = False
-
-# Instancia el dron - elige el "COM"
+# Instancia el dron (selecciona puerto serial) y elige controller
 midron = dron.create_dron(cfg.arduino_port, simulated=cfg.ignore_arduino)  # LABO
 controller = Controller(info=False)
 controller.initialize_general()
 
+# instancia localizador del dron
 locator = rady_locator.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
 
 
-
-#############################################################################
-#  Funcionamiento deberia ser segun el modo, provisionalmente aqui
-#  TODO Arreglar esta guarrada y aislar bien.
-#############################################################################
+# Callback clicks en ventana
 def click_clases(event, x, y, flags, param):
-    global frame
+    rfs.evalua_click(event, x, y, dron=midron, controller=controller, localizador=locator, frame=gb.frame)
 
-    # TODO Auto set range color para el locator (corona y ciruclo)
-    if midron.mode == "CALIB_COLOR":
-        if event == cv2.EVENT_LBUTTONUP:
-            print("Color picker!")
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            bgr = frame[y, x]
-            color = hsv[y, x]
-            print("HSV", color)
-            print("HSV", color)
-            print("BGR", bgr)
-            print("BGR", bgr)
-
-        if event == cv2.EVENT_RBUTTONUP:
-            print("Color picker!")
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            bgr = frame[y, x]
-            color = hsv[y, x]
-            print("HSV", color)
-            print("HSV", color)
-            print("BGR", bgr)
-            print("BGR", bgr)
-
-    else:
-        if event == cv2.EVENT_LBUTTONUP:
-            print("Color picker!")
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            bgr = frame[y, x]
-            color = hsv[y, x]
-            print("HSV", color)
-            print("HSV", color)
-            print("BGR", bgr)
-            print("BGR", bgr)
-
-            # Nuevos targets
-
-            # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
-            gb.xTarget = x  # pixeles
-            gb.yTarget = y  # pixeles
-            controller.windupXY()
-            print("target point:")
-            print(x, y)
-
-
-            a = 180 + int(math.degrees(math.atan2(locator.coronaNaranja.x - x, locator.coronaNaranja.y - y)))
-            if a >= 360: a-=360
-            cv2.setTrackbarPos("A Target", "target", a)
-            print("target angulo:")
-            print(a)
-
-            controller.control_simple_pid_init()
-            print("PID de la lib simple_pid seteados valores target.")
-#############################################################################
 
 def main():
-    global frame
 
     # mirror seleccionado?
     rotate = False # realmente es ahora un ROTATE 180º
     # cam = Stream(src=0, resolution=(width, height), framerate=fps_camera).start()  # Tercera camara SRC = 2 - CASA = 0 - Unica
     cam = Stream(src=cfg.camera_src, resolution=(width, height), framerate=fps_camera).start()  # Segunda camara SRC = 1 (primera es la del portatil - 0)
-    # cam = Stream(src="http://172.17.18.124:8080/?action=stream", resolution=(width, height), framerate=fps_camera).start()  # Intento Http
+    # cam = Stream(src="http://172.17.18.124:8080/?action=stream", resolution=(width, height), framerate=fps_camera).start()  # Lee stream de video por http
 
-    # # DESACTIVADO PROVISIONAL...
-    # # Lectura frames per second
-    # start = time.time()
-    # buffer = rfs.RingBuffer(10)
-    # avg_fps = 0.0
-    # counter = 0
 
     # clicks
     cv2.namedWindow('frame gordo')
@@ -159,10 +97,6 @@ def main():
     timer_fps = datetime.now()  # guarda tiempo de ultimo procesamiento.
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
-
-    # # PROVISIONAL - Pruebas limites
-    # forcing_down = False
-    # consecutive_frames_out_of_limits = 0
 
     while True:
 
@@ -178,79 +112,38 @@ def main():
         gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
         gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
 
-        # _, frame = cam.read() # Con videoCapture a pelo
-        frame = cam.read()  # Con STREAM
+        # _, frame = cam.read() # Con videoCapture de openCv a pelo
+        gb.frame = cam.read()  # Con mi STREAM de video
 
         # Espejo/rotate si/no?
-        if rotate: frame = cv2.flip(frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
+        if rotate:
+            gb.frame = cv2.flip(gb.frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
 
         # Camara calibrada? Obtenemos la transformacion
         if undistort:
-            undistorted = cv2.remap(frame, map1, map2, cv2.INTER_LINEAR)
+            undistorted = cv2.remap(gb.frame, map1, map2, cv2.INTER_LINEAR)
             x, y, w, h = roi
-            frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
+            gb.frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
 
         # SCALE Imagen
         # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
         # cv2.imshow('image', frame)
 
         k = cv2.waitKey(1)
-        if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=frame):
+        if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=gb.frame):
             break
 
         # Localizador
-        localizacion, estado_localizador = locator.posicion_dron(frame)  # asignar a clase dron su localizador seria lo suyo.
+        localizacion, estado_localizador = locator.posicion_dron(gb.frame)  # asignar a clase dron su localizador seria lo suyo.
         # Coger var que indike OK - NOK, o grado de OK del dron.
         gb.x, gb.y, gb.z, gb.head = localizacion
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue
 
 
-
-        #################################################
-        ####### Logica      -         Provisional #######
-        #################################################
-
-        # # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
-        # # Force down
-        # try:
-        #     if ((gb.z >= 50) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE")):
-        #         consecutive_frames_out_of_limits += 1
-        #         if not forcing_down and consecutive_frames_out_of_limits >= 3:
-        #             print("FORCING DRON: A BAJAR!!!")
-        #             # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
-        #             midron.set_mode("HOLD")
-        #             modo_panico = "BASICO_DISABLE_GFACTOR"
-        #             # controller.set_mode("BASICO_LIMIT_Z")
-        #             # controller.set_mode("BASICO_CLAMP_THROTTLE")
-        #             controller.set_mode(modo_panico)
-        #             forcing_down = True
-        #     # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
-        #     #     consecutive_frames_out_of_limits += 1
-        #     else:
-        #         consecutive_frames_out_of_limits = 0
-        #
-        #     if forcing_down and gb.z <= gb.zTarget+10:
-        #         print("DESCATIVANDO FORCING: Windup Z, Activando control: BASICO")
-        #         forcing_down = False
-        #         controller.windupZ()
-        #         controller.set_mode("BASICO")
-        # except:
-        #     forcing_down = False
-        #     controller.set_mode("BASICO")
-        controller.meta_selector()
-
-
-        #################################################
-        #################################################
-        #################################################
-
-
-
         # Comandos de control:
+        controller.run_meta_selector()  # todo: dar una vuelta a esto.
         pack = controller.control()
-        # Comandos de control:
-
 
         # Envío comandos a Arduino-Dron
         if pack: # and estado_localizador:
@@ -266,8 +159,8 @@ def main():
 
         # fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer_tick_count)
         ms_frame = (datetime.now() - t_loop_start).microseconds / 1000
-        rfs.pinta_informacion_en_frame(frame, midron, controller, t_frame=ms_frame)
-        cv2.imshow('frame gordo', frame)
+        rfs.pinta_informacion_en_frame(gb.frame, midron, controller, t_frame=ms_frame)
+        cv2.imshow('frame gordo', gb.frame)
 
         # rfs.pinta_informacion_en_panel_info(panel, midron, controller)
         # cv2.imshow('more info', panel)

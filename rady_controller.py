@@ -126,7 +126,7 @@ class Controller():
         return()
 
     # Provisional, Logica que cambia modos de control - todo pasar a modo del dron..
-    def meta_selector(self, windup=False):
+    def run_meta_selector(self, windup=False):
         # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
         # Force down
         try:

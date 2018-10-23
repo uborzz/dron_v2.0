@@ -7,4 +7,4 @@ camera_src = 0                  # 0                 # 1
 entorno = "prod"                # prod              # labo
 altura_camara = 180 # cms       # 180               # 205
 
-ignore_arduino = False  # evita serial.open y intentos transf. data
+ignore_arduino = True # evita serial.open y intentos transf. data
