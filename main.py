@@ -160,9 +160,9 @@ def main():
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
 
-    # PROVISIONAL - Pruebas limites
-    forcing_down = False
-    consecutive_frames_out_of_limits = 0
+    # # PROVISIONAL - Pruebas limites
+    # forcing_down = False
+    # consecutive_frames_out_of_limits = 0
 
     while True:
 
@@ -211,30 +211,34 @@ def main():
         ####### Logica      -         Provisional #######
         #################################################
 
-        # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
-        # Force down
-        try:
-            if ((controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE") and (gb.z >= 50)):
-                consecutive_frames_out_of_limits += 1
-                if not forcing_down and consecutive_frames_out_of_limits >= 3:
-                    print("FORCING DRON: A BAJAR!!!")
-                    # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
-                    midron.set_mode("HOLD")
-                    # controller.set_mode("BASICO_LIMIT_Z")
-                    # controller.set_mode("BASICO_CLAMP_THROTTLE")
-                    controller.set_mode("BASICO_DISABLE_GFACTOR")
-                    forcing_down = True
-            else:
-                consecutive_frames_out_of_limits = 0
-
-            if forcing_down and gb.z <= gb.zTarget+10:
-                print("DESCATIVANDO FORCING: Windup Z, Activando control: BASICO")
-                forcing_down = False
-                controller.windupZ()
-                controller.set_mode("BASICO")
-        except:
-            forcing_down = False
-            controller.set_mode("BASICO")
+        # # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
+        # # Force down
+        # try:
+        #     if ((gb.z >= 50) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE")):
+        #         consecutive_frames_out_of_limits += 1
+        #         if not forcing_down and consecutive_frames_out_of_limits >= 3:
+        #             print("FORCING DRON: A BAJAR!!!")
+        #             # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
+        #             midron.set_mode("HOLD")
+        #             modo_panico = "BASICO_DISABLE_GFACTOR"
+        #             # controller.set_mode("BASICO_LIMIT_Z")
+        #             # controller.set_mode("BASICO_CLAMP_THROTTLE")
+        #             controller.set_mode(modo_panico)
+        #             forcing_down = True
+        #     # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
+        #     #     consecutive_frames_out_of_limits += 1
+        #     else:
+        #         consecutive_frames_out_of_limits = 0
+        #
+        #     if forcing_down and gb.z <= gb.zTarget+10:
+        #         print("DESCATIVANDO FORCING: Windup Z, Activando control: BASICO")
+        #         forcing_down = False
+        #         controller.windupZ()
+        #         controller.set_mode("BASICO")
+        # except:
+        #     forcing_down = False
+        #     controller.set_mode("BASICO")
+        controller.meta_selector()
 
 
         #################################################

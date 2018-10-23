@@ -64,6 +64,9 @@ class Controller():
 
         self.dron = dron.take_dron()
 
+        self.forcing_down = False
+        self.consecutive_frames_out_of_limits = 0
+
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
         if index >= len(self.modes_available):
@@ -83,6 +86,7 @@ class Controller():
     def windupZ(self):
         self.zErrorI = 0
 
+    # Playground pruebas diferentes modos
     def control(self):
         if self.dron.mode == "DESPEGUE":
             if self.mode == "BASICO":
@@ -121,6 +125,35 @@ class Controller():
         #         return self.control_calib_bias()
         return()
 
+    # Provisional, Logica que cambia modos de control - todo pasar a modo del dron..
+    def meta_selector(self, windup=False):
+        # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
+        # Force down
+        try:
+            if ((gb.z >= 50) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
+                self.consecutive_frames_out_of_limits += 1
+                if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
+                    print("FORCING DRON: A BAJAR!!!")
+                    # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
+                    self.dron.set_mode("HOLD")
+                    modo_panico = "BASICO_DISABLE_GFACTOR"
+                    # controller.set_mode("BASICO_LIMIT_Z")
+                    # controller.set_mode("BASICO_CLAMP_THROTTLE")
+                    self.set_mode(modo_panico)
+                    self.forcing_down = True
+            # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
+            #     consecutive_frames_out_of_limits += 1
+            else:
+                self.consecutive_frames_out_of_limits = 0
+
+            if self.forcing_down and gb.z <= gb.zTarget+10:
+                print("DESCATIVANDO FORCING. Activando control: BASICO")
+                self.forcing_down = False
+                if windup: self.windupZ()
+                self.set_mode("BASICO")
+        except:
+            self.forcing_down = False
+            self.set_mode("BASICO")
 
     def control_con_filtros(self):
         # Filtros y PID control
@@ -906,7 +939,6 @@ class Controller():
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
-
     def control_disable_factor(self):
         # Filtros y PID control
         gb.angleTarget = 180
@@ -925,7 +957,7 @@ class Controller():
         ##########################################################################
         ############ FORZAR ABAJO POR FACTOR GRAVEDAD A MANOTA
         # Trucar gravedad intento 1:
-        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= 4
+        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= (gb.correccion_gravedad * .6)
         # if zError < 0: print(zError)
         ##########################################################################
 
