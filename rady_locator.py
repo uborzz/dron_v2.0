@@ -417,7 +417,9 @@ class Corona:
         # v,^ --slow
         self.K_x = kf.KalmanFilter(6, 4)
         self.K_y = kf.KalmanFilter(5, 5)
-        self.K_radius = kf.KalmanFilter(0.75, 3) # <--- 0.15 antes (Corona Naranja)
+        # self.K_radius = kf.KalmanFilter(0.75, 3) # <--- 0.15 antes (Corona Naranja)
+        # self.K_radius = kf.KalmanFilter(0.15, 3)  # <--- (Aceptable :))
+        self.K_radius = kf.KalmanFilter(0.05, 3)  # <--- 0.15 Mejor resultado.
 
     ##### JULIO 2018
         # self.K_x = kf.KalmanFilter(0.1, 0.2)

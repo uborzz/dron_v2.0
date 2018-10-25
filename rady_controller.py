@@ -332,6 +332,9 @@ class Controller():
         self.zErrorI += self.zError
         self.angleErrorI += self.angleError
 
+        clamp_i = int(gb.clamp_offset*0.75)  # 3/4 clamp total:
+        self.zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
+
         # compute derivative (variation) of errors (D)
         xErrorD = self.xError - xError_old
         yErrorD = self.yError - yError_old
@@ -366,6 +369,7 @@ class Controller():
 
         # salva cosas
         recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
+        recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
         recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
@@ -718,7 +722,7 @@ class Controller():
         # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
         self.xError = gb.xTarget - xDroneFiltered
         self.yError = gb.yTarget - yDroneFiltered
-        self.zError = gb.zTarget - zDroneFiltered
+        self.zError = gb.zTarget + zDroneFiltered
         self.angleError = gb.angleTarget - angleDroneFiltered
 
         # Trucar gravedad intento 1:
@@ -992,22 +996,27 @@ class Controller():
         self.zError = gb.zTarget - zDrone
         self.angleError = gb.angleTarget - angleDrone
 
-
-        ##########################################################################
-        ############ FORZAR ABAJO POR FACTOR GRAVEDAD A MANOTA
-        # Trucar gravedad intento 1:
-        if self.zError < 0 and gb.correccion_gravedad > 0:
-            self.zError = self.zError / (gb.correccion_gravedad * 0.8)
-        # if zError < 0: print(zError)
-        ##########################################################################
-
-
         # compute integral (sum) of errors (I)
         # should design an anti windup for z
         self.xErrorI += self.xError
         self.yErrorI += self.yError
         self.zErrorI += self.zError
         self.angleErrorI += self.angleError
+
+        self.zErrorI = rfs.clamp(self.zErrorI, -250, 250)
+
+
+        # ##########################################################################
+        # ############ FORZAR ABAJO POR FACTOR GRAVEDAD A MANOTA
+        # # Trucar gravedad intento 1:
+        # if self.zError < 0 and gb.correccion_gravedad > 0:
+        #     self.zError = self.zError / (gb.correccion_gravedad * 0.7)
+        # # if zError < 0: print(zError)
+        # ##########################################################################
+
+        # Trucar gravedad intento 1:
+        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= gb.correccion_gravedad
+        # if zError < 0: print(zError)
 
         # compute derivative (variation) of errors (D)
         xErrorD = self.xError - xError_old
@@ -1043,6 +1052,7 @@ class Controller():
 
         # salva cosas
         recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
+        recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
         recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 

@@ -173,7 +173,7 @@ class Configurator:
         gb.rudder_middle = bias_data["rudder"]  # yaw left (-) and yaw right (+)
         gb.correccion_gravedad = bias_data["correccion_gravedad"]
 
-        gb.clamp_offset = 300
+        gb.clamp_offset = 400       # Todo: a piñoneti? Arreglar esto
 
         # rady PID - pixeles (x-y) - cm (z) - degree (head)
         gb.KPx, gb.KPy, gb.KPz, gb.KPangle = pid_data["KPx"], pid_data["KPy"], pid_data["KPz"], pid_data["KPangle"]

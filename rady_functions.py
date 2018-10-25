@@ -113,6 +113,16 @@ class Recorder(object):
         self.yErrorRecord = []
         self.zErrorRecord = []
         self.angleErrorRecord = []
+
+        self.xErrorIRecord = []
+        self.yErrorIRecord = []
+        self.zErrorIRecord = []
+        self.angleErrorIRecord = []
+        self.xErrorDRecord = []
+        self.yErrorDRecord = []
+        self.zErrorDRecord = []
+        self.angleErrorDRecord = []
+
         self.aileronRecord = []
         self.elevatorRecord = []
         self.throttleRecord = []
@@ -138,11 +148,22 @@ class Recorder(object):
         self.angleMovidoRecord.append(angulo_movido)
         self.angleFilteredRecord.append(angulo_filtrado_raw)
 
-    def save_errors(self, x, y, z, a):
-        self.xErrorRecord.append(x)
-        self.yErrorRecord.append(y)
-        self.zErrorRecord.append(z)
-        self.angleErrorRecord.append(a)
+    def save_errors(self, x, y, z, a, modo="p"):
+        if modo=="p":
+            self.xErrorRecord.append(x)
+            self.yErrorRecord.append(y)
+            self.zErrorRecord.append(z)
+            self.angleErrorRecord.append(a)
+        elif modo=="i":
+            self.xErrorIRecord.append(x)
+            self.yErrorIRecord.append(y)
+            self.zErrorIRecord.append(z)
+            self.angleErrorIRecord.append(a)
+        elif modo=="d":
+            self.xErrorDRecord.append(x)
+            self.yErrorDRecord.append(y)
+            self.zErrorDRecord.append(z)
+            self.angleErrorDRecord.append(a)
 
     def save_commands(self, ele, ail, thr, rud):
         self.elevatorRecord.append(ele)
@@ -165,7 +186,12 @@ class Recorder(object):
                                 'yError': self.yErrorRecord, 'zError': self.zErrorRecord,
                                 'angleError': self.angleErrorRecord, 'aileron': self.aileronRecord,
                                 'elevator': self.elevatorRecord, 'throttle': self.throttleRecord,
-                                'rudder': self.rudderRecord})
+                                'rudder': self.rudderRecord,
+                                'xErrorI': self.xErrorIRecord, 'yErrorI': self.yErrorIRecord, 'zErrorI': self.zErrorIRecord,
+                                'angleErrorI': self.angleErrorIRecord,
+                                'xErrorD': self.xErrorDRecord, 'yErrorD': self.yErrorDRecord, 'zErrorD': self.zErrorDRecord,
+                                'angleErrorD': self.angleErrorDRecord
+                                })
             print("Fichero guardado con recordings: ", nombre_fichero)
         except Exception as e:
             print("dump data to file failed with exception:", str(e))

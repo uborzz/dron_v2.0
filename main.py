@@ -184,5 +184,8 @@ def main():
         midron.panic()
         midron.close()
 
+    print("See ya! =)")
+
+
 if __name__ == '__main__':
     main()
