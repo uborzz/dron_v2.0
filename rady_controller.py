@@ -99,6 +99,8 @@ class Controller():
                 return self.control_calib_bias()
             elif self.mode == "BASICO_PID_LIB":
                 return self.control_simple_pid()
+            elif self.mode == "PIDLIB":
+                return self.control_pidlib()
             elif self.mode == "FILTROS_TESTS":
                 return self.control_basico_pruebas_filters()
             # return self.control_con_filtros()
@@ -107,6 +109,8 @@ class Controller():
                 return self.control_basico()
             elif self.mode == "BASICO_G_FACTOR":
                 return self.control_basico()
+            elif self.mode == "PIDLIB":
+                return self.control_pidlib()
             elif self.mode == "BASICO_LIMIT_Z":
                 return self.control_land()
             elif self.mode == "BASICO_CLAMP_THROTTLE":
@@ -129,31 +133,37 @@ class Controller():
     def run_meta_selector(self, windup=False):
         # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
         # Force down
-        try:
-            if ((gb.z >= 50) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
-                self.consecutive_frames_out_of_limits += 1
-                if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
-                    print("FORCING DRON: A BAJAR!!!")
-                    # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
-                    self.dron.set_mode("HOLD")
-                    modo_panico = "BASICO_DISABLE_GFACTOR"
-                    # controller.set_mode("BASICO_LIMIT_Z")
-                    # controller.set_mode("BASICO_CLAMP_THROTTLE")
-                    self.set_mode(modo_panico)
-                    self.forcing_down = True
-            # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
-            #     consecutive_frames_out_of_limits += 1
-            else:
-                self.consecutive_frames_out_of_limits = 0
 
-            if self.forcing_down and gb.z <= gb.zTarget+10:
-                print("DESCATIVANDO FORCING. Activando control: BASICO")
+        if self.dron.mode != "NO_INIT":
+
+            try:
+                if ((gb.z >= 50) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
+                    self.consecutive_frames_out_of_limits += 1
+                    if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
+                        print("FORCING DRON: A BAJAR!!!")
+                        # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
+                        self.dron.set_mode("HOLD")
+                        modo_panico = "BASICO_DISABLE_GFACTOR"
+                        # controller.set_mode("BASICO_LIMIT_Z")
+                        # controller.set_mode("BASICO_CLAMP_THROTTLE")
+                        self.set_mode(modo_panico)
+                        # self.windupZ()
+                        self.forcing_down = True
+                # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
+                #     consecutive_frames_out_of_limits += 1
+                else:
+                    self.consecutive_frames_out_of_limits = 0
+
+                if self.forcing_down and gb.z <= gb.zTarget+10:
+                    print("DESCATIVANDO FORCING. Activando control: BASICO")
+                    self.forcing_down = False
+                    if windup: self.windupZ()
+                    self.set_mode("BASICO")
+                    self.consecutive_frames_out_of_limits = 0
+            except:
                 self.forcing_down = False
-                if windup: self.windupZ()
                 self.set_mode("BASICO")
-        except:
-            self.forcing_down = False
-            self.set_mode("BASICO")
+                self.consecutive_frames_out_of_limits = 0
 
     def control_con_filtros(self):
         # Filtros y PID control
@@ -444,15 +454,44 @@ class Controller():
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
+    def control_pidlib_target(self, x=None, y=None, z=None, a=None):
+        try:
+            if x is not None: self.libpid_x.setpoint(x)
+            if y is not None: self.libpid_y.setpoint(y)
+            if z is not None: self.libpid_z.setpoint(z)
+            if a is not None: self.libpid_a.setpoint(a)
+        except:
+            pass
+
+
+    def control_pidlib_init(self):
+        self.libpid_x = PID(gb.KPx, gb.KIx, gb.KDx, setpoint=gb.xTarget, output_limits=(1200, 1800), sample_time=None, proportional_on_measurement=True)
+        self.libpid_y = PID(gb.KPy, gb.KIy, gb.KDy, setpoint=gb.yTarget, output_limits=(1200, 1800), sample_time=None, proportional_on_measurement=True)
+        self.libpid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=gb.zTarget, output_limits=(1200, 1800), sample_time=None, proportional_on_measurement=True)
+        self.libpid_a = PID(gb.KPangle, gb.KIangle, gb.KDangle, setpoint=180, output_limits=(1200, 1800), sample_time=None, proportional_on_measurement=True)
+
+
+    def control_pidlib(self):
+        # Filtros y PID control
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        throttleCommand = self.libpid_z(zDrone)
+        elevatorCommand = self.libpid_y(yDrone)
+        aileronCommand = self.libpid_x(xDrone)
+        rudderCommand = self.libpid_a(angleDrone)
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+
     def control_simple_pid_init(self):
         self.spid_x = PID(gb.KPx, gb.KIx, gb.KDx, setpoint=gb.xTarget)
         self.spid_y = PID(gb.KPy, gb.KIy, gb.KDy, setpoint=gb.yTarget)
         self.spid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=gb.zTarget)
         self.spid_a = PID(gb.KPangle, gb.KIangle, gb.KDangle, setpoint=180)
         self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
-        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
-        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
-        self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_y.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_z.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        self.spid_a.output_limits = (-gb.clamp_offset, gb.clamp_offset)
 
 
     def control_simple_pid(self):
@@ -957,7 +996,8 @@ class Controller():
         ##########################################################################
         ############ FORZAR ABAJO POR FACTOR GRAVEDAD A MANOTA
         # Trucar gravedad intento 1:
-        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= (gb.correccion_gravedad * .6)
+        if self.zError < 0 and gb.correccion_gravedad > 0:
+            self.zError = self.zError / (gb.correccion_gravedad * 0.8)
         # if zError < 0: print(zError)
         ##########################################################################
 

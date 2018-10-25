@@ -45,12 +45,12 @@ class Localizador:
 
         # PROD - PROVISIONA FICHEROS
         elif entorno == "prod":
-            try:    # existen ficheros
+            try:    # si existen ficheros los carga
                 lower_corona = np.loadtxt('config/config_locator/lower_corona.txt', dtype=int)
                 upper_corona = np.loadtxt('config/config_locator/upper_corona.txt', dtype=int)
                 lower_punto = np.loadtxt('config/config_locator/lower_punto.txt', dtype=int)
                 upper_punto = np.loadtxt('config/config_locator/upper_punto.txt', dtype=int)
-            except:
+            except: # Nota!! Para guardar los ficheros salir con Q! Esc no guarda nada.
                 lower_corona = np.array([16, 234, 246])
                 upper_corona = np.array([24, 255, 255])
                 lower_punto = np.array([137, 0, 168])  # LILA

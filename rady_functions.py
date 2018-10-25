@@ -432,6 +432,13 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.set_mode("DESPEGUE")
             # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
             dron.flag_vuelo = True
+        elif k == ord('f'):
+            dron.prueba_arduino_envios = 0
+            controller.control_pidlib_init()
+            controller.set_mode("PIDLIB")
+            configurator.load_config_file("config_pidlib.json")
+            dron.set_mode("DESPEGUE")
+            dron.flag_vuelo = True
         elif k == ord('t'):
             controller.windup()
             dron.prueba_arduino_envios = 0
@@ -468,20 +475,13 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
     else:
         if event == cv2.EVENT_LBUTTONUP:
             print("Color picker!")
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            bgr = frame[y, x]
-            color = hsv[y, x]
-            print("HSV", color)
-            print("HSV", color)
-            print("BGR", bgr)
-            print("BGR", bgr)
 
             # Nuevos targets
 
             # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
             gb.xTarget = x  # pixeles
             gb.yTarget = y  # pixeles
-            controller.windupXY()
+            # controller.windupXY()     # 181025 - no resetear
             print("target point:")
             print(x, y)
 
@@ -491,5 +491,8 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
             print("target angulo:")
             print(a)
 
-            controller.control_simple_pid_init()
-            print("PID de la lib simple_pid seteados valores target.")
+
+            # controller.control_simple_pid_init()
+            # print("PID de la lib simple_pid seteados valores target.")
+
+            controller.control_pidlib_target(x=x, y=y)

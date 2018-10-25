@@ -109,8 +109,13 @@ def main():
         t_loop_start = datetime.now()
 
         if gb.refresca_params_flag: configurator.panels.refresca_params()
+
+
+        # TODO AISLAR ESTO
         gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
         gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
+        controller.control_pidlib_target(z = gb.zTarget)
+        #############################
 
         # _, frame = cam.read() # Con videoCapture de openCv a pelo
         gb.frame = cam.read()  # Con mi STREAM de video
@@ -142,7 +147,7 @@ def main():
 
 
         # Comandos de control:
-        controller.run_meta_selector()  # todo: dar una vuelta a esto.
+        controller.run_meta_selector(windup=False)  # todo: dar una vuelta a esto.
         pack = controller.control()
 
         # Envío comandos a Arduino-Dron
