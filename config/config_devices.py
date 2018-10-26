@@ -2,7 +2,7 @@
 
 # vars config especificas de la maquina/lugar
 
-arduino_port = "COM6"   # "/dev/ttyUSB0"    # "COM6"
+arduino_port = "COM7"   # "/dev/ttyUSB0"    # "COM6"t
 camera_src = 1                  # 0                 # 1
 entorno = "prod"                # prod              # labo
 altura_camara = 205 # cms       # 180               # 205

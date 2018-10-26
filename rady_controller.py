@@ -332,7 +332,7 @@ class Controller():
         self.zErrorI += self.zError
         self.angleErrorI += self.angleError
 
-        clamp_i = int(gb.clamp_offset*0.75)  # 3/4 clamp total:
+        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)  # 3/4 clamp total:
         self.zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
 
         # compute derivative (variation) of errors (D)
@@ -1003,8 +1003,8 @@ class Controller():
         self.zErrorI += self.zError
         self.angleErrorI += self.angleError
 
-        self.zErrorI = rfs.clamp(self.zErrorI, -250, 250)
-
+        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.65)
+        self.zErrorI = rfs.clamp(self.zErrorI, -250, clamp_i)
 
         # ##########################################################################
         # ############ FORZAR ABAJO POR FACTOR GRAVEDAD A MANOTA
