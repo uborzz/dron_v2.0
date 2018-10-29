@@ -368,6 +368,7 @@ class Controller():
         rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
 
         # salva cosas
+        recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
         recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
         recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
         recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
@@ -1003,7 +1004,7 @@ class Controller():
         self.zErrorI += self.zError
         self.angleErrorI += self.angleError
 
-        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.65)
+        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.80)
         self.zErrorI = rfs.clamp(self.zErrorI, -250, clamp_i)
 
         # ##########################################################################
@@ -1051,6 +1052,7 @@ class Controller():
         rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
 
         # salva cosas
+        recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
         recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
         recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
         recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)

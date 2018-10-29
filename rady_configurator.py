@@ -14,6 +14,7 @@ from datetime import datetime
 import os
 import cv2
 
+
 class Panels():
 
     def __init__(self):
@@ -144,7 +145,8 @@ class Configurator:
     def __new__(cls):
         if cls.__instance == None:
             cls.__instance = object.__new__(cls)
-            cls.__instance.initialize("config_E011.json")  # config inicial
+
+            # cls.__instance.initialize(pid_config)  # config inicial
         return cls.__instance
 
     def initialize(self, file_name):

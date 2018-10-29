@@ -60,6 +60,7 @@ recorder = rfs.Recorder()   # salva matriz de datos para analisis
 recorder.configure(identificador=timestamp, fps=gb.fps)
 
 configurator = Configurator()   # clase para configuracion con sliders
+configurator.initialize(cfg.pid_config_inicial)
 
 gb.info = False     # muestra/oculta info en consola
 
