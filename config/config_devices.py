@@ -2,9 +2,10 @@
 
 # vars config especificas de la maquina/lugar
 
-arduino_port = "COM7"   # "/dev/ttyUSB0"    # "COM6"t
+arduino_port = "COM6"   # "/dev/ttyUSB0"    # "COM6"t
 camera_src = 1                  # 0                 # 1
+camera_rotation = True         # False             # True
 entorno = "prod"                # prod              # labo
-altura_camara = 205 # cms       # 180               # 205
+altura_camara = 185 # cms       # 180               # 205
 
 ignore_arduino = False  # evita serial.open y intentos transf. data
