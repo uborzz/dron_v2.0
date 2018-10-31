@@ -52,6 +52,11 @@ class Panels():
         cv2.createTrackbar('CG', 'control', gb.correccion_gravedad, 25, self.nothing)
 
         cv2.createTrackbar('Clamp', 'control', gb.clamp_offset, 500, self.nothing)
+        cv2.createTrackbar('AUX1', 'control', gb.AUXILIAR1, 10, self.nothing)
+
+        cv2.createTrackbar('KPZd', 'control', gb.KPzd, 20, self.nothing)
+        cv2.createTrackbar('KIZd', 'control', int(gb.KIzd * 100), 100, self.nothing)
+        cv2.createTrackbar('KDZd', 'control', gb.KDzd, 200, self.nothing)
 
         cv2.createTrackbar('KPX', 'control', int(gb.KPx * 100), 500, self.nothing)
         cv2.createTrackbar('KIX', 'control', int(gb.KIx * 100), 100, self.nothing)
@@ -84,7 +89,12 @@ class Panels():
         cv2.setTrackbarPos('BIASZ', 'control', gb.throttle_middle)
         cv2.setTrackbarPos('CG', 'control', gb.correccion_gravedad)
 
+        cv2.setTrackbarPos('KPZd', 'control', gb.KPzd)
+        cv2.setTrackbarPos('KIZd', 'control', int(gb.KIzd * 100))
+        cv2.setTrackbarPos('KDZd', 'control', gb.KDzd)
+
         cv2.setTrackbarPos('Clamp', 'control', gb.clamp_offset)
+        cv2.setTrackbarPos('AUX1', 'control', gb.AUXILIAR1)
 
         cv2.setTrackbarPos('KPX', 'control', int(gb.KPx * 100))
         cv2.setTrackbarPos('KIX', 'control', int(gb.KIx * 100))
@@ -119,7 +129,13 @@ class Panels():
         gb.throttle_middle = cv2.getTrackbarPos("BIASZ", "control")
         gb.correccion_gravedad = cv2.getTrackbarPos("CG", "control")
 
+        gb.KPzd = cv2.getTrackbarPos("KPZd", "control")
+        gb.KIzd = cv2.getTrackbarPos("KIZd", "control") / float(100)
+        gb.KDzd = cv2.getTrackbarPos("KDZd", "control")
+
+
         gb.clamp_offset = cv2.getTrackbarPos("Clamp", "control")
+        gb.AUXILIAR1 = cv2.getTrackbarPos("AUX1", "control")
 
         gb.KPx = cv2.getTrackbarPos("KPX", "control") / float(100)
         gb.KIx = cv2.getTrackbarPos("KIX", "control") / float(100)
@@ -176,11 +192,15 @@ class Configurator:
         gb.correccion_gravedad = bias_data["correccion_gravedad"]
 
         gb.clamp_offset = 400       # Todo: a piñoneti? Arreglar esto
+        gb.AUXILIAR1 = 2            # Todo: a piñoneti? Arreglar esto
 
         # rady PID - pixeles (x-y) - cm (z) - degree (head)
         gb.KPx, gb.KPy, gb.KPz, gb.KPangle = pid_data["KPx"], pid_data["KPy"], pid_data["KPz"], pid_data["KPangle"]
         gb.KIx, gb.KIy, gb.KIz, gb.KIangle = pid_data["KIx"], pid_data["KIy"], pid_data["KIz"], pid_data["KIangle"]
         gb.KDx, gb.KDy, gb.KDz, gb.KDangle = pid_data["KDx"], pid_data["KDy"], pid_data["KDz"], pid_data["KDangle"]
+
+        # mods PID bajada
+        gb.KPzd, gb.KIzd, gb.KDzd = gb.KPz, gb.KIz, gb.KDz
 
     @staticmethod
     def save_config_file(file_name):
