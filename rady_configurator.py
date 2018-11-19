@@ -20,6 +20,9 @@ class Panels():
     def __init__(self):
         self.create_trackbars()
 
+    def attach_controller(self, controller):
+        self.controller = controller
+
     def create_trackbars(self):
         """
             globals:
@@ -129,9 +132,11 @@ class Panels():
         gb.throttle_middle = cv2.getTrackbarPos("BIASZ", "control")
         gb.correccion_gravedad = cv2.getTrackbarPos("CG", "control")
 
+        ## PROV
         gb.KPzd = cv2.getTrackbarPos("KPZd", "control")
         gb.KIzd = cv2.getTrackbarPos("KIZd", "control") / float(100)
         gb.KDzd = cv2.getTrackbarPos("KDZd", "control")
+        self.controller.spid_z.tunings = gb.KPz, gb.KIz, gb.KDz
 
 
         gb.clamp_offset = cv2.getTrackbarPos("Clamp", "control")
@@ -164,6 +169,9 @@ class Configurator:
 
             # cls.__instance.initialize(pid_config)  # config inicial
         return cls.__instance
+
+    def attach_controller(self, controller):
+        self.panels.attach_controller(controller)
 
     def initialize(self, file_name):
         self.salvar_al_salir = False

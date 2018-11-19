@@ -90,9 +90,14 @@ class Controller():
     def control(self):
         if self.dron.mode == "DESPEGUE":
             if self.mode == "BASICO":
-                return self.control_basico_piddoble()
+                return self.control_basico()
+                # return self.control_basico_piddoble()
                 # return self.control_basico_factorsolointegral()
                 # return self.control_basico()
+            elif self.mode == "NOVIEMBRE":
+                return self.control_noviembre()
+            elif self.mode == "BASICO_DOBLE":
+                return self.control_basico_piddoble()
             elif self.mode == "HOVER_BIAS":
                 return self.control_hover_bias()
             elif self.mode == "BASICO_LF":
@@ -100,7 +105,8 @@ class Controller():
             elif self.mode == "CALIB_BIAS":
                 return self.control_calib_bias()
             elif self.mode == "BASICO_PID_LIB":
-                return self.control_simple_pid()
+                return self.control_basico_pidzsimple()
+                # return self.control_simple_pid()
             elif self.mode == "PIDLIB":
                 return self.control_pidlib()
             elif self.mode == "FILTROS_TESTS":
@@ -109,10 +115,14 @@ class Controller():
         elif self.dron.mode == "HOLD":
             if self.mode == "BASICO":
                 return self.control_basico_piddoble()
+                # return self.control_basico_piddoble()
                 # return self.control_basico_factorsolointegral()
                 # return self.control_basico()
             elif self.mode == "BASICO_G_FACTOR":
                 return self.control_basico()
+            elif self.mode == "BASICO_PID_LIB":
+                return self.control_basico_pidzsimple()
+                # return self.control_simple_pid()
             elif self.mode == "PIDLIB":
                 return self.control_pidlib()
             elif self.mode == "BASICO_LIMIT_Z":
@@ -382,6 +392,73 @@ class Controller():
 
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
+    def control_basico_pidzsimple(self):
+        # Filtros y PID control
+        gb.angleTarget = 180
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        # implement a PID controller
+        # store previous errors in position (cm) and angle (degrees) (to compute variation of error)
+        xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
+        # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
+        self.xError = gb.xTarget - xDrone
+        self.yError = gb.yTarget - yDrone
+        self.zError = gb.zTarget - zDrone
+        self.angleError = gb.angleTarget - angleDrone
+
+
+        # compute integral (sum) of errors (I)
+        # should design an anti windup for z
+        self.xErrorI += self.xError
+        self.yErrorI += self.yError
+        self.zErrorI += self.zError
+        self.angleErrorI += self.angleError
+
+        if gb.KIz > 0:
+            clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)  # :
+            self.zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
+
+        # compute derivative (variation) of errors (D)
+        xErrorD = self.xError - xError_old
+        yErrorD = self.yError - yError_old
+        angleErrorD = self.angleError - angleError_old
+
+        # compute commands
+        xCommand = gb.KPx * self.xError + gb.KIx * self.xErrorI + gb.KDx * xErrorD
+        yCommand = gb.KPy * self.yError + gb.KIy * self.yErrorI + gb.KDy * yErrorD
+        angleCommand = gb.KPangle * self.angleError + gb.KIangle * self.angleErrorI + gb.KDangle * angleErrorD
+
+        zCommand = self.spid_z(self.zError)
+        print(zCommand)
+        print(zCommand)
+        print(zCommand)
+        throttleCommand = gb.throttle_middle - zCommand
+        elevatorCommand = gb.elevator_middle - yCommand
+        aileronCommand = gb.aileron_middle + xCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+        throttleCommand = round(
+            rfs.clamp(throttleCommand, gb.throttle_middle - gb.clamp_offset, gb.throttle_middle + gb.clamp_offset))
+        throttleCommand = round(rfs.clamp(throttleCommand, 1000, 2000))
+        aileronCommand = round(
+            rfs.clamp(aileronCommand, gb.aileron_middle - gb.clamp_offset, gb.aileron_middle + gb.clamp_offset))
+        aileronCommand = round(rfs.clamp(aileronCommand, 1000, 2000))
+        elevatorCommand = round(
+            rfs.clamp(elevatorCommand, gb.elevator_middle - gb.clamp_offset, gb.elevator_middle + gb.clamp_offset))
+        elevatorCommand = round(rfs.clamp(elevatorCommand, 1000, 2000))
+        rudderCommand = round(
+            rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
+        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+
+        # salva cosas
+        recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
+        recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
+        # recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
+        recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
+        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
     def control_basico_factorsolointegral(self):
         # Filtros y PID control
@@ -651,12 +728,21 @@ class Controller():
     def control_simple_pid_init(self):
         self.spid_x = PID(gb.KPx, gb.KIx, gb.KDx, setpoint=gb.xTarget)
         self.spid_y = PID(gb.KPy, gb.KIy, gb.KDy, setpoint=gb.yTarget)
-        self.spid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=gb.zTarget)
+        self.spid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=0)
         self.spid_a = PID(gb.KPangle, gb.KIangle, gb.KDangle, setpoint=180)
         self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
         self.spid_y.output_limits = (-gb.clamp_offset, gb.clamp_offset)
         self.spid_z.output_limits = (-gb.clamp_offset, gb.clamp_offset)
         self.spid_a.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        # self.spid_x = PID(gb.KPx, gb.KIx, gb.KDx, setpoint=gb.xTarget)
+        # self.spid_y = PID(gb.KPy, gb.KIy, gb.KDy, setpoint=gb.yTarget)
+        # self.spid_z = PID(gb.KPz, gb.KIz, gb.KDz, setpoint=gb.zTarget)
+        # self.spid_a = PID(gb.KPangle, gb.KIangle, gb.KDangle, setpoint=180)
+        # self.spid_x.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        # self.spid_y.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        # self.spid_z.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+        # self.spid_a.output_limits = (-gb.clamp_offset, gb.clamp_offset)
+
 
 
     def control_simple_pid(self):
@@ -1220,3 +1306,76 @@ class Controller():
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+
+    def control_noviembre(self):
+        # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
+        gb.angleTarget = 180
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
+        self.xError = gb.xTarget - xDrone
+        self.yError = gb.yTarget - yDrone
+        self.zError = gb.zTarget - zDrone
+        self.angleError = gb.angleTarget - angleDrone
+
+        # Trucar gravedad intento 1:
+        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= gb.correccion_gravedad
+        # if zError < 0: print(zError)
+
+        # compute integral (sum) of errors (I)
+        # should design an anti windup for z
+        self.xErrorI += self.xError
+        self.yErrorI += self.yError
+        self.zErrorI += self.zError
+        self.angleErrorI += self.angleError
+
+        if gb.KIz > 0:
+            clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)  # :
+            self.zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
+
+        # compute derivative (variation) of errors (D)
+        xErrorD = self.xError - xError_old
+        yErrorD = self.yError - yError_old
+        zErrorD = self.zError - zError_old
+        angleErrorD = self.angleError - angleError_old
+
+        # compute commands
+        xCommand = gb.KPx * self.xError + gb.KIx * self.xErrorI + gb.KDx * xErrorD
+        yCommand = gb.KPy * self.yError + gb.KIy * self.yErrorI + gb.KDy * yErrorD
+
+        componente_ZP = gb.KPz * self.zError
+        componente_ZI = gb.KIz * self.zErrorI
+        componente_ZD = gb.KDz * zErrorD
+        zCommand = componente_ZP + componente_ZI + componente_ZD
+
+        angleCommand = gb.KPangle * self.angleError + gb.KIangle * self.angleErrorI + gb.KDangle * angleErrorD
+
+        throttleCommand = gb.throttle_middle + zCommand
+        elevatorCommand = gb.elevator_middle - yCommand
+        aileronCommand = gb.aileron_middle + xCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+        throttleCommand = round(rfs.clamp(throttleCommand, gb.throttle_middle - gb.clamp_offset, gb.throttle_middle + gb.clamp_offset))
+        throttleCommand = round(rfs.clamp(throttleCommand, 1000, 2000))
+        aileronCommand = round(rfs.clamp(aileronCommand, gb.aileron_middle - gb.clamp_offset, gb.aileron_middle + gb.clamp_offset))
+        aileronCommand = round(rfs.clamp(aileronCommand, 1000, 2000))
+        elevatorCommand = round(rfs.clamp(elevatorCommand, gb.elevator_middle - gb.clamp_offset, gb.elevator_middle + gb.clamp_offset))
+        elevatorCommand = round(rfs.clamp(elevatorCommand, 1000, 2000))
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
+        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+
+        # print(componente_ZP, componente_ZI, componente_ZD)
+        rfs.pinta_en_posicion([throttleCommand, componente_ZP, componente_ZI, componente_ZD], (int(xDrone), int(yDrone)))
+
+
+
+        # salva cosas
+        recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
+        recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
+        recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
+        recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
+        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)

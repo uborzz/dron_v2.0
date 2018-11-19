@@ -14,6 +14,7 @@ import rady_functions as rfs
 import dron
 from rady_controller import Controller
 from rady_configurator import Configurator
+from video_writer import video_writer
 
 
 ####################################################################
@@ -68,10 +69,14 @@ gb.info = False     # muestra/oculta info en consola
 midron = dron.create_dron(cfg.arduino_port, simulated=cfg.ignore_arduino)  # LABO
 controller = Controller(info=False)
 controller.initialize_general()
+configurator.attach_controller(controller)
+controller.control_simple_pid_init()
 
 # instancia localizador del dron
 locator = rady_locator.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
 
+video = video_writer()
+video.initialize(dims=(width, height))
 
 # Callback clicks en ventana
 def click_clases(event, x, y, flags, param):
@@ -171,6 +176,12 @@ def main():
         # rfs.pinta_informacion_en_panel_info(panel, midron, controller)
         # cv2.imshow('more info', panel)
 
+
+    # SALVA VIDEO
+
+        if video.is_enabled():
+            video.write(gb.frame)
+
     cv2.destroyAllWindows()
 
     recorder.dump_to_file()
@@ -180,6 +191,10 @@ def main():
 
         # Provisional...
         locator.save_values_to_file()
+
+    if video.is_initialized():
+        video.release()
+        print("If activated, video for this session can be found in...", video.get_filename())
 
     if not cfg.ignore_arduino:
         midron.panic()

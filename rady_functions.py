@@ -20,8 +20,10 @@ import math
 import time
 from rady_configurator import Configurator
 from datetime import datetime, timedelta
+from video_writer import video_writer
 
 configurator = Configurator()
+video = video_writer()
 
 def get_undistort_map():
     try:
@@ -206,7 +208,6 @@ class Recorder(object):
             print("No hay datos almacenados en el tiempo...")
 
 
-
 def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
     cv2.putText(frame, "X: " + str(gb.x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
@@ -230,6 +231,9 @@ def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     cv2.putText(frame, "kalmans: " + str(not gb.disable_all_kalmans), (440, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"),1)
     cv2.putText(frame, "cercanias: " + str(gb.solo_buscar_en_cercanias), (440, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("verde"),1)
 
+    if video.is_enabled():
+        cv2.putText(frame, "Recording", (10, 395), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("rojo"), 2)
+
 
 def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
@@ -249,23 +253,33 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
     cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
 
+def pinta_en_posicion(valores, posicion):
+    offset = 0
+    for item in valores:
+        item_str = item
+        if isinstance(item_str, int) or isinstance(item_str, float):
+            item_str = str(int(item))
+        cv2.putText(gb.frame, item_str, (posicion[0], posicion[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("negro"), 2)
+        offset += 20  # baja 20 pixeles.
+
+
 def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
 
     """
 
-        Q        |   W        |  E     |      R    |       T      |     Y
-    save config  | camara     |        |   Run     | Run bias     |  photo to
-        & quit   |   config   |        |           |    calib     |    captures
-    |____________|____________|________|___________|______________|_____________
-        A        |   S        |
-      Parada     | Paro       |
-        Soft     |   Gordo    |                                     [[Mandos]]
-    |____________|____________|____________|            ____________|____________|____________|
-        Z        |   X        |   C        |           |   B        |   N        |   M        |
-        BIND     | Calibra    | Calibra    |           | Mandos     | Mandos     | Mandos     |
-     No Bwhoop   |IMU Bwhoop  |IMU Eachine |           | (a-i) / /  | (aba) | |  |  (a-d)\ \  |
-
+        Q        |   W        |  E     |      R    |       T      |     Y       |
+    save config  | camara     |        |   Run     | Run bias     |  photo to   |
+        & quit   |   config   |        |           |    calib     |    captures |
+    |____________|____________|________|___________|______________|_____________|____________
+        A        |   S        |                                           H     |
+      Parada     | Paro       |                 F          G            video   |
+        Soft     |   Gordo    |                                       recording |
+    |____________|____________|____________|           _________________________|_____________
+        Z        |   X        |   C        |            _[[Mandos]]_|____________|____________|
+        BIND     | Calibra    | Calibra    |           |   B        |   N        |   M        |
+     No Bwhoop   |IMU Bwhoop  |IMU Eachine |           | Mandos     | Mandos     | Mandos     |
+                                                       | (a-i) / /  | (aba) | |  |  (a-d)\ \  |
 
                                             |____________|
                                             |   !        |
@@ -437,6 +451,14 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             print("Imagen guardada:", img_name)
             cv2.imwrite("captures/" + img_name, frame)
 
+        elif k == ord('h'):  # video record on - off
+            if video.is_enabled():
+                video.turn_off()
+                print("Deactivating video capture...")
+            else:
+                video.turn_on()
+                print("Capturing video...")
+
         elif k == ord('a'):
             dron.panic()
             controller.windup()  # chapuza windup
@@ -454,11 +476,17 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         elif k == ord('r'):
             controller.windup()
             dron.prueba_arduino_envios = 0
-            controller.control_simple_pid_init()
             dron.set_mode("DESPEGUE")
-            # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
             dron.flag_vuelo = True
-        elif k == ord('f'):
+        elif k == ord('f'): # Antes PID lib más cutre.
+            controller.windup()
+            dron.prueba_arduino_envios = 0
+            controller.set_mode("NOVIEMBRE")
+            configurator.load_config_file("noviembre.json")
+            controller.control_pidlib_init()
+            dron.set_mode("DESPEGUE")
+            dron.flag_vuelo = True
+        elif k == ord('g'):
             dron.prueba_arduino_envios = 0
             controller.control_pidlib_init()
             controller.set_mode("PIDLIB")
@@ -471,7 +499,6 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             controller.t_inicio_maniobra = datetime.now()
             dron.set_mode("DESPEGUE")
             controller.set_mode("CALIB_BIAS")
-            # modo = "despega"  # Por aislar PID para cambiar sus parametros al vuelo.
             dron.flag_vuelo = True
 
 
