@@ -41,12 +41,12 @@ class Panels():
         cv2.namedWindow('target')
         cv2.resizeWindow('target', 300, 120)
         cv2.moveWindow('target', 200+640+400, 100)
-        cv2.createTrackbar('Z Target', 'target', 20, 50, self.nothing_target)
+        cv2.createTrackbar('Z Target', 'target', 40, 60, self.nothing_target)
         cv2.createTrackbar('A Target', 'target', 180, 360, self.nothing_target)
 
         # trackbars
         cv2.namedWindow('control')
-        cv2.resizeWindow('control', 400, 750)
+        cv2.resizeWindow('control', 400, 900)
         cv2.moveWindow('control', 200+640, 100)
         cv2.createTrackbar('KPZ', 'control', gb.KPz, 20, self.nothing)
         cv2.createTrackbar('KIZ', 'control', int(gb.KIz * 100), 100, self.nothing)
