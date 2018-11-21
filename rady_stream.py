@@ -14,6 +14,7 @@
 from threading import Thread
 import cv2
 import platform
+from datetime import datetime
 
 """
 Camera props:
@@ -49,6 +50,7 @@ class Stream:
             self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
 
         (self.grabbed, self.frame) = self.stream.read()
+        self.capture_time = datetime.now()
         # initialize the variable used to indicate if the thread should
         # be stopped
         self.stopped = False
@@ -90,11 +92,12 @@ class Stream:
 
             # otherwise, read the next frame from the stream
             (self.grabbed, self.frame) = self.stream.read()
+            self.capture_time = datetime.now()  # sync con lock?
 
 
     def read(self):
         # return the frame most recently read
-        return self.frame
+        return self.frame, self.capture_time.timestamp()
 
     def stop(self):
         # indicate that the thread should be stopped

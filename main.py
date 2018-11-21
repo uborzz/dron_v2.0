@@ -76,7 +76,6 @@ controller.control_simple_pid_init()
 locator = rady_locator.Localizador(distancia_camara_suelo, debug=False, info=gb.info, entorno=cfg.entorno)
 
 video = video_writer()
-video.initialize(dims=(width, height))
 
 # Callback clicks en ventana
 def click_clases(event, x, y, flags, param):
@@ -124,7 +123,7 @@ def main():
         #############################
 
         # _, frame = cam.read() # Con videoCapture de openCv a pelo
-        gb.frame = cam.read()  # Con mi STREAM de video
+        gb.frame, gb.frame_time = cam.read()  # Con mi STREAM de video
 
         # Espejo/rotate si/no?
         if rotate:

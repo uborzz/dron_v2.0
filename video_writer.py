@@ -17,6 +17,7 @@ class video_writer:
         self.out = None
         self.filename = None
         self.enabled = False
+        self.never_launched = True
         # print("ENTRANDO EN RADY INIT...")
 
     def is_initialized(self):
@@ -24,7 +25,7 @@ class video_writer:
             return True
         return False
 
-    def initialize(self, filename=None, dims=(320,240)):
+    def initialize(self, filename=None, dims=(640,480)):
         # mejorar con mas params en futuro, ahora mismo vale asi.
 
         if filename == None:
@@ -47,7 +48,11 @@ class video_writer:
             raise
 
     def turn_on(self):
+        if self.never_launched == True:
+            self.never_launched = False
+        self.initialize()
         self.enabled = True
+
 
     def turn_off(self):
         self.enabled = False

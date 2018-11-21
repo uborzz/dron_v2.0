@@ -67,6 +67,8 @@ class Controller():
         self.forcing_down = False
         self.consecutive_frames_out_of_limits = 0
 
+        self.t_frame_previo = datetime.now().timestamp()
+
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
         if index >= len(self.modes_available):
@@ -151,7 +153,7 @@ class Controller():
         if self.dron.mode != "NO_INIT":
 
             try:
-                if ((gb.z >= 50) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
+                if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
                     self.consecutive_frames_out_of_limits += 1
                     if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
                         print("FORCING DRON: A BAJAR!!!")
@@ -1308,7 +1310,7 @@ class Controller():
         return(throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
 
-    def control_noviembre(self):
+    def control_noviembre_CHECKPOINT_181120(self):
         # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
         gb.angleTarget = 180
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
@@ -1378,4 +1380,120 @@ class Controller():
         recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
         recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+    def corrige_diferencia(self, input, tiempo):
+        if input <= 0.025:
+            return input * 2
+        elif input >= 0.1:
+            return input / 2
+        valor = input * 10
+        multiplicador = valor * valor * (-7) + valor * 4 + 3.5
+        valor_corregido = input * multiplicador
+        return valor_corregido
+
+    def control_noviembre(self):
+        # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
+        gb.angleTarget = 180
+        xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
+
+        # print("control!")
+        # print(gb.frame_time - self.t_frame_previo)
+        tiempo_entre_frames = (gb.frame_time - self.t_frame_previo)
+
+        xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
+        self.xError = gb.xTarget - xDrone
+        self.yError = gb.yTarget - yDrone
+        self.zError = gb.zTarget - zDrone
+        self.angleError = gb.angleTarget - angleDrone
+
+        # Trucar gravedad intento 1:
+        if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= gb.correccion_gravedad
+        # if zError < 0: print(zError)
+
+        # compute integral (sum) of errors (I)
+        # should design an anti windup for z
+        self.xErrorI += self.xError
+        self.yErrorI += self.yError
+        self.zErrorI += self.zError
+        self.angleErrorI += self.angleError
+
+        # compute derivative (variation) of errors (D)
+        xErrorD = self.xError - xError_old
+        yErrorD = self.yError - yError_old
+        zErrorD = self.zError - zError_old
+        angleErrorD = self.angleError - angleError_old
+
+
+        # compute commands
+        ############################
+        #     X
+        componente_XP = gb.KPx * self.xError
+        componente_XD = gb.KDx * self.corrige_diferencia(xErrorD, tiempo_entre_frames)
+        clamp_i = int((gb.clamp_offset / gb.KIx) * 0.65)
+        self.xErrorI = rfs.clamp(self.xErrorI, -clamp_i, clamp_i)
+        componente_XI = gb.KIx * self.xErrorI
+        xCommand = componente_XP + componente_XI + componente_XD
+
+
+        ############################
+        #     Y
+        componente_YP = gb.KPy * self.yError
+        componente_YD = gb.KDy * self.corrige_diferencia(yErrorD, tiempo_entre_frames)
+        clamp_i = int((gb.clamp_offset / gb.KIy) * 0.65)
+        self.yErrorI = rfs.clamp(self.yErrorI, -clamp_i, clamp_i)
+        componente_YI = gb.KIy * self.yErrorI
+        yCommand = componente_YP + componente_YI + componente_YD
+
+
+        ############################
+        #     A
+        angleCommand = gb.KPangle * self.angleError + gb.KIangle * self.angleErrorI + gb.KDangle * angleErrorD
+
+
+        ############################
+        #     Z
+        componente_ZP = gb.KPz * self.zError
+        componente_ZD = gb.KDz * self.corrige_diferencia(zErrorD, tiempo_entre_frames)
+        # Acompasar Clamp general con clam integral Z
+        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)
+        v_max = gb.throttle_middle + gb.clamp_offset
+        provisional_zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
+        clamp_compas = v_max - componente_ZP - componente_ZD
+        self.zErrorI = rfs.clamp(provisional_zErrorI, -clamp_i, clamp_compas)
+        componente_ZI = gb.KIz * self.zErrorI
+        zCommand = componente_ZP + componente_ZI + componente_ZD
+
+
+        # generate rf values
+        throttleCommand = gb.throttle_middle + zCommand
+        elevatorCommand = gb.elevator_middle - yCommand
+        aileronCommand = gb.aileron_middle + xCommand
+        rudderCommand = gb.rudder_middle - angleCommand
+
+        # round and clamp the commands to [1000, 2000] us (limits for PPM values)
+        throttleCommand = round(rfs.clamp(throttleCommand, gb.throttle_middle - gb.clamp_offset, gb.throttle_middle + gb.clamp_offset))
+        throttleCommand = round(rfs.clamp(throttleCommand, 1000, 2000))
+        aileronCommand = round(rfs.clamp(aileronCommand, gb.aileron_middle - gb.clamp_offset, gb.aileron_middle + gb.clamp_offset))
+        aileronCommand = round(rfs.clamp(aileronCommand, 1000, 2000))
+        elevatorCommand = round(rfs.clamp(elevatorCommand, gb.elevator_middle - gb.clamp_offset, gb.elevator_middle + gb.clamp_offset))
+        elevatorCommand = round(rfs.clamp(elevatorCommand, 1000, 2000))
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
+        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+
+        # print(componente_ZP, componente_ZI, componente_ZD)
+        rfs.pinta_en_posicion([throttleCommand, componente_ZP, componente_ZI, componente_ZD], (int(xDrone), int(yDrone)))
+        rfs.pinta_en_posicion(["X -", aileronCommand, componente_XP, componente_XI, componente_XD], (50, 240))
+        rfs.pinta_en_posicion(["Y |", elevatorCommand, componente_YP, componente_YI, componente_YD], (550, 240))
+
+
+        # salva cosas
+        recorder.save_position(xDrone, yDrone, zDrone, angleDrone)
+        recorder.save_errors(self.xError, self.yError, self.zError, self.angleError)
+        recorder.save_errors(self.xErrorI, self.yErrorI, self.zErrorI, self.angleErrorI, modo="i")
+        recorder.save_commands(elevatorCommand, aileronCommand, throttleCommand, rudderCommand)
+        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+
+
+        self.t_frame_previo = gb.frame_time
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
