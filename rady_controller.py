@@ -90,6 +90,7 @@ class Controller():
 
     # Playground pruebas diferentes modos
     def control(self):
+        # print("Entrando control")
         if self.dron.mode == "DESPEGUE":
             if self.mode == "BASICO":
                 return self.control_basico()
@@ -800,6 +801,8 @@ class Controller():
     def control_land(self):
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
+        _, aileronCommand, elevatorCommand, rudderCommand = self.control_noviembre()
+
         tn = datetime.now()
         if tn - self.dron.t_start >= self.dron.t_duracion or zDrone <= 10:
             self.dron.set_mode("NO_INIT")
@@ -821,16 +824,18 @@ class Controller():
             vx = (tx - ti) / (tf - ti) * (vf - vi) + vi
             throttleCommand = vx
 
-        # compute commands
-        xCommand = self.spid_x(xDrone)
-        yCommand = self.spid_y(yDrone)
-        angleCommand = self.spid_a(angleDrone)
 
-        elevatorCommand = gb.elevator_middle - yCommand
-        aileronCommand = gb.aileron_middle + xCommand
-        rudderCommand = gb.rudder_middle - angleCommand
-
-        recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
+        # OLD LAND.
+        # # compute commands
+        # xCommand = self.spid_x(xDrone)
+        # yCommand = self.spid_y(yDrone)
+        # angleCommand = self.spid_a(angleDrone)
+        #
+        # elevatorCommand = gb.elevator_middle - yCommand
+        # aileronCommand = gb.aileron_middle + xCommand
+        # rudderCommand = gb.rudder_middle - angleCommand
+        #
+        # recorder.save_time((datetime.now() - gb.timerStart).total_seconds())
 
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
@@ -1382,17 +1387,24 @@ class Controller():
 
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
-    def corrige_diferencia(self, input, tiempo):
-        if input <= 0.025:
-            return input * 2
-        elif input >= 0.1:
-            return input / 2
-        valor = input * 10
-        multiplicador = valor * valor * (-7) + valor * 4 + 3.5
-        valor_corregido = input * multiplicador
-        return valor_corregido
+
+    def corrige_diferencia(self, diferencia, tiempo):
+        # No es general, es válido para nuestro caso de 20fps
+        if tiempo <= 0.025:
+            return diferencia * 2
+        elif tiempo >= 0.1:
+            return diferencia / 2
+        # valor = input * 10
+        # multiplicador = valor * valor * (-7) + valor * 4 + 3.5
+        # output = input * multiplicador
+        divisor = tiempo * 20
+        output = diferencia / divisor
+        # print("provisional diferencia...", input, tiempo, output)
+        return output
+
 
     def control_noviembre(self):
+        # print("Entrando control_noviembre")
         # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
         gb.angleTarget = 180
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
@@ -1429,7 +1441,8 @@ class Controller():
         ############################
         #     X
         componente_XP = gb.KPx * self.xError
-        componente_XD = gb.KDx * self.corrige_diferencia(xErrorD, tiempo_entre_frames)
+        # componente_XD = gb.KDx * self.corrige_diferencia(xErrorD, tiempo_entre_frames)
+        componente_XD = gb.KDx * xErrorD
         clamp_i = int((gb.clamp_offset / gb.KIx) * 0.65)
         self.xErrorI = rfs.clamp(self.xErrorI, -clamp_i, clamp_i)
         componente_XI = gb.KIx * self.xErrorI
@@ -1439,7 +1452,8 @@ class Controller():
         ############################
         #     Y
         componente_YP = gb.KPy * self.yError
-        componente_YD = gb.KDy * self.corrige_diferencia(yErrorD, tiempo_entre_frames)
+        # componente_YD = gb.KDy * self.corrige_diferencia(yErrorD, tiempo_entre_frames)
+        componente_YD = gb.KDy * yErrorD
         clamp_i = int((gb.clamp_offset / gb.KIy) * 0.65)
         self.yErrorI = rfs.clamp(self.yErrorI, -clamp_i, clamp_i)
         componente_YI = gb.KIy * self.yErrorI
@@ -1455,13 +1469,15 @@ class Controller():
         #     Z
         componente_ZP = gb.KPz * self.zError
         componente_ZD = gb.KDz * self.corrige_diferencia(zErrorD, tiempo_entre_frames)
-        # Acompasar Clamp general con clam integral Z
+        # componente_ZD = gb.KDz * zErrorD
+        # Acompasar Clamp general con clam integral Z (No funciona bien por los golpes de la diferencia)
         clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)
-        v_max = gb.throttle_middle + gb.clamp_offset
+        v_max = gb.throttle_middle + gb.clamp_offset + 100 # margen de 100 throttle sobrepasados en la integrada
         provisional_zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
         clamp_compas = v_max - componente_ZP - componente_ZD
         self.zErrorI = rfs.clamp(provisional_zErrorI, -clamp_i, clamp_compas)
-        componente_ZI = gb.KIz * self.zErrorI
+        # componente_ZI = gb.KIz * self.zErrorI
+        componente_ZI = gb.KIz * provisional_zErrorI
         zCommand = componente_ZP + componente_ZI + componente_ZD
 
 
