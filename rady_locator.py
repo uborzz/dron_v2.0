@@ -16,6 +16,7 @@ import numpy as np
 import time
 import queue
 import kalman_jc as kf
+import kalman_circular as kfc
 import math
 import globales as gb
 
@@ -100,7 +101,9 @@ class Localizador:
         # self.K_z = kf.KalmanFilter(1, 1)
 
         self.head = 0
-        self.K_head = kf.KalmanFilter(4, 6)
+        # self.K_head = kfc.kalman_circular(0.5, 30) # prueba filtro
+        self.K_head = kfc.kalman_circular(4, 6)
+
 
         # self.coronaNaranja = Corona(2)
         pass
@@ -172,12 +175,9 @@ class Localizador:
             head = math.atan2(x-self.circuloColor.x, y-self.circuloColor.y) # radianes
             head = int(math.degrees(head)) + 180
 
-        if not gb.disable_all_kalmans:
-            if head <= 10 or head >= 350:
-                pass
-            elif gb.kalman_angle:
-                headp = self.K_head.predict_and_correct(head)
-                head = int(headp)
+        # filtrar
+        if not gb.disable_all_kalmans and gb.kalman_angle:
+            head = self.K_head.predict_and_correct(head)
 
         self.head = head
 
