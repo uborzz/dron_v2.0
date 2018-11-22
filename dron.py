@@ -19,12 +19,12 @@ class Dron:
     """
 
     def __init__(self, serial_port, simulated=False):
-        baud_rate = 115200
+        self.baud_rate = 115200
         self.serial_port_name = serial_port
         self.port = None
         self.simulated = simulated
         if not self.simulated:
-            self.port = serial.Serial(self.serial_port_name, baud_rate, timeout=1)
+            self.port = serial.Serial(self.serial_port_name, self.baud_rate, timeout=1)
 
         self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOVER"]
         self.set_mode("NO_INIT")
@@ -53,6 +53,14 @@ class Dron:
 
     # def activar(self):
     #     while True:
+
+    def restart(self):
+        if not self.simulated:
+            self.port.close()
+            time.sleep(0.5)
+            self.port = serial.Serial(self.serial_port_name, self.baud_rate, timeout=1)
+            time.sleep(0.5)
+            print("Port restarted!")
 
     def get_port(self):
         return(self.port)

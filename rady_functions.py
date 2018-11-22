@@ -361,6 +361,9 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         #     midron.send_command("1500,1600,1470,1500")
         #     # time.sleep(1)
 
+    elif k == ord('j'):
+        dron.restart()
+
     elif k == ord('.'):
         dron.change_mode()
     elif k == ord('-'):
