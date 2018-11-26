@@ -190,6 +190,16 @@ class Configurator:
         gb.config_activa = file_name
         print(file_name, "cargada a globales.")
 
+    def modify_bias(self, bias_data, file_name):
+        # define middle PPM values that make the drone hover
+        if "throttle" in bias_data.keys() : gb.throttle_middle = bias_data["throttle"]  # up (+) and down (-)  # 1660 con corona de 4 gramos
+        if "aileron" in bias_data.keys(): gb.aileron_middle = bias_data["aileron"]  # left (-) and right (+)
+        if "elevator" in bias_data.keys(): gb.elevator_middle = bias_data["elevator"]  # forward (+) and backward (-)
+        if "rudder" in bias_data.keys(): gb.rudder_middle = bias_data["rudder"]  # yaw left (-) and yaw right (+)
+        if "correccion_gravedad" in bias_data.keys(): gb.correccion_gravedad = bias_data["correccion_gravedad"]
+        self.panels.refresh_sliders_from_globals()
+        gb.config_activa = file_name
+
     @staticmethod
     def write_to_globals(pid_data, bias_data):
         # define middle PPM values that make the drone hover

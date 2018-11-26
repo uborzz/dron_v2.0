@@ -5,8 +5,10 @@ from datetime import datetime, timedelta
 import serial
 import globales as gb
 from rady_configurator import Configurator
+from rady_functions import Recorder
 
 configurator = Configurator()
+recorder = Recorder()
 
 class Dron:
     """
@@ -26,8 +28,8 @@ class Dron:
         if not self.simulated:
             self.port = serial.Serial(self.serial_port_name, self.baud_rate, timeout=1)
 
-        self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOVER"]
-        self.set_mode("NO_INIT")
+        self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOVER", "HOLD", "AVANZA", "RETROCEDE"]
+        self.mode = "NO_INIT"
         self.motor_on = False
         self.drone_properties = "drone.config"
 
@@ -88,11 +90,28 @@ class Dron:
     def set_heading(self, head):
         self.target_head = head
 
+    def get_mode(self):
+        return self.mode
+
+    def activar_modo_previo(self):
+        self.set_mode(self.modo_previo)
+
     def set_mode(self, modo):
+        self.modo_previo = self.mode
         self.mode = modo
+        print("Activando modo dron:", self.mode)
         if modo == "DESPEGUE":
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
+        elif modo == "HOLD":
+            gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
+            configurator.config_target(a=gb.head)
+        elif modo == "AVANZA":
+            l = recorder.elevatorRecord[-30:]
+            self.valor_maniobras = sum(l) / len(l) + 80
+        elif modo == "RETROCEDE":
+            l = recorder.elevatorRecord[-30:]
+            self.valor_maniobras = sum(l) / len(l) - 80
         # elif modo == "HOLD":
         #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
         #     configurator.config_target(z=gb.z, a=gb.head)

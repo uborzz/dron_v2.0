@@ -25,6 +25,7 @@ from video_writer import video_writer
 configurator = Configurator()
 video = video_writer()
 
+
 def get_undistort_map():
     try:
         raise ("DESACTIVADO") # trick
@@ -207,6 +208,7 @@ class Recorder(object):
         else:
             print("No hay datos almacenados en el tiempo...")
 
+recorder = Recorder()
 
 def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
@@ -344,7 +346,7 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         lectura = dron.port.read(1000)
         print("Lectura INIT enviado: ", lectura)
         # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-        dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+        # dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
         # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
         time.sleep(4)
         lectura = dron.port.read(1000)
@@ -394,6 +396,50 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         dron.prepara_modo(timedelta(seconds=4), gb.throttle)
         dron.set_mode("LAND")
 
+
+    elif k==ord('4'):   # Activa Modo avanza
+        if dron.get_mode() == "AVANZA":
+            # dron.activar_modo_previo()
+            pass
+        else:
+            dron.set_mode("AVANZA")
+
+    elif k==ord('5'):   # Activa Modo retrocede
+        if dron.get_mode() == "RETROCEDE":
+            # dron.activar_modo_previo()
+            pass
+        else:
+            dron.set_mode("RETROCEDE")
+
+    elif k==ord('6'):   # Activa Modo HOLD
+        dron.set_mode("HOLD")
+
+    elif k==ord('7'):
+        configurator.load_config_file("media_todos_ejes.json")
+        controller.windup()  # chapuza windup
+        bias = {
+            "aileron": int(sum(recorder.aileronRecord[-30:])/30),
+            "correccion_gravedad": 0,
+            "elevator": int(sum(recorder.elevatorRecord[-30:])/30),
+            "rudder": int(sum(recorder.rudderRecord[-30:])/30),
+            "throttle": int(sum(recorder.throttleRecord[-30:])/30)
+        }
+        configurator.modify_bias(bias, "media_todos_ejes.json")
+        print("prov. Cambiando config PID a media_todos_ejes.json")
+
+    elif k==ord('8'):
+        configurator.load_config_file("media_bias_z.json")
+        controller.windup()  # chapuza windup
+        bias = {
+            "throttle": int(sum(recorder.throttleRecord[-30:])/30)
+        }
+        configurator.modify_bias(bias, "media_bias_z.json")
+        print("prov. Cambiando config PID a media_bias_z.json")
+
+    elif k==ord('9'):
+        controller.set_mode("NOVIEMBRE")
+        configurator.load_config_file("noviembre.json")
+        print("prov. Cambiando config PID a noviembre.json")
 
 
     # PROVISIONAL - Funciones teclas si Modo del dron "CALIB_COLOR".

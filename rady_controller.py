@@ -77,6 +77,7 @@ class Controller():
         print("Modo controller elegido:", self.mode)
 
     def set_mode(self, mode):
+        print("Activando controlador:", mode)
         self.mode = mode
 
     def windup(self):
@@ -121,6 +122,8 @@ class Controller():
                 # return self.control_basico_piddoble()
                 # return self.control_basico_factorsolointegral()
                 # return self.control_basico()
+            elif self.mode == "NOVIEMBRE":
+                return self.control_noviembre()
             elif self.mode == "BASICO_G_FACTOR":
                 return self.control_basico()
             elif self.mode == "BASICO_PID_LIB":
@@ -141,6 +144,10 @@ class Controller():
             return self.control_land()
         elif self.dron.mode == "EXPLORE":
             return self.control_explore()
+        elif self.dron.mode == "AVANZA":
+            return self.control_avanza()
+        elif self.dron.mode == "RETROCEDE":
+            return self.control_retrocede()
         # elif self.dron.mode == "NO_INIT":
         #     if self.mode == "CALIB_BIAS":
         #         return self.control_calib_bias()
@@ -1441,22 +1448,26 @@ class Controller():
         ############################
         #     X
         componente_XP = gb.KPx * self.xError
-        # componente_XD = gb.KDx * self.corrige_diferencia(xErrorD, tiempo_entre_frames)
-        componente_XD = gb.KDx * xErrorD
-        clamp_i = int((gb.clamp_offset / gb.KIx) * 0.65)
-        self.xErrorI = rfs.clamp(self.xErrorI, -clamp_i, clamp_i)
-        componente_XI = gb.KIx * self.xErrorI
+        componente_XD = gb.KDx * self.corrige_diferencia(xErrorD, tiempo_entre_frames)
+        # componente_XD = gb.KDx * xErrorD
+        i, componente_XI = gb.KIx, 0
+        if i:
+            clamp_i = int((gb.clamp_offset / gb.KIx) * 0.65)
+            self.xErrorI = rfs.clamp(self.xErrorI, -clamp_i, clamp_i)
+            componente_XI = gb.KIx * self.xErrorI
         xCommand = componente_XP + componente_XI + componente_XD
 
 
         ############################
         #     Y
         componente_YP = gb.KPy * self.yError
-        # componente_YD = gb.KDy * self.corrige_diferencia(yErrorD, tiempo_entre_frames)
-        componente_YD = gb.KDy * yErrorD
-        clamp_i = int((gb.clamp_offset / gb.KIy) * 0.65)
-        self.yErrorI = rfs.clamp(self.yErrorI, -clamp_i, clamp_i)
-        componente_YI = gb.KIy * self.yErrorI
+        componente_YD = gb.KDy * self.corrige_diferencia(yErrorD, tiempo_entre_frames)
+        # componente_YD = gb.KDy * yErrorD
+        i, componente_YI = gb.KIy, 0
+        if i:
+            clamp_i = int((gb.clamp_offset / gb.KIy) * 0.65)
+            self.yErrorI = rfs.clamp(self.yErrorI, -clamp_i, clamp_i)
+            componente_YI = gb.KIy * self.yErrorI
         yCommand = componente_YP + componente_YI + componente_YD
 
 
@@ -1471,13 +1482,15 @@ class Controller():
         componente_ZD = gb.KDz * self.corrige_diferencia(zErrorD, tiempo_entre_frames)
         # componente_ZD = gb.KDz * zErrorD
         # Acompasar Clamp general con clam integral Z (No funciona bien por los golpes de la diferencia)
-        clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)
-        v_max = gb.throttle_middle + gb.clamp_offset + 100 # margen de 100 throttle sobrepasados en la integrada
-        provisional_zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
-        clamp_compas = v_max - componente_ZP - componente_ZD
-        self.zErrorI = rfs.clamp(provisional_zErrorI, -clamp_i, clamp_compas)
+        i, componente_ZI = gb.KIz, 0
+        if i:
+            clamp_i = int((gb.clamp_offset / gb.KIz) * 0.90)
+            v_max = gb.throttle_middle + gb.clamp_offset + 100 # margen de 100 throttle sobrepasados en la integrada
+            provisional_zErrorI = rfs.clamp(self.zErrorI, -clamp_i, clamp_i)
+            clamp_compas = v_max - componente_ZP - componente_ZD
+            self.zErrorI = rfs.clamp(provisional_zErrorI, -clamp_i, clamp_compas)
         # componente_ZI = gb.KIz * self.zErrorI
-        componente_ZI = gb.KIz * provisional_zErrorI
+            componente_ZI = gb.KIz * provisional_zErrorI
         zCommand = componente_ZP + componente_ZI + componente_ZD
 
 
@@ -1497,6 +1510,7 @@ class Controller():
         rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
         rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
 
+
         # print(componente_ZP, componente_ZI, componente_ZD)
         rfs.pinta_en_posicion([throttleCommand, componente_ZP, componente_ZI, componente_ZD], (int(xDrone), int(yDrone)))
         rfs.pinta_en_posicion(["X -", aileronCommand, componente_XP, componente_XI, componente_XD], (50, 240))
@@ -1513,3 +1527,16 @@ class Controller():
 
         self.t_frame_previo = gb.frame_time
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+
+    def control_avanza(self):
+        (throttleCommand, aileronCommand, elevatorCommand, rudderCommand) = self.control_noviembre()
+        elevatorCommand = self.dron.valor_maniobras
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+
+
+    def control_retrocede(self):
+        (throttleCommand, aileronCommand, elevatorCommand, rudderCommand) = self.control_noviembre()
+        elevatorCommand = self.dron.valor_maniobras
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
+

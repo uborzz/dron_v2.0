@@ -44,6 +44,7 @@ panel = np.zeros((400,400,3), np.uint8)
 gb.kalman_angle = True
 gb.disable_all_kalmans = False
 gb.solo_buscar_en_cercanias = True
+gb.avanza, gb.retrocede = False, False
 
 # params
 distancia_camara_suelo = cfg.altura_camara

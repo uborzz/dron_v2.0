@@ -21,3 +21,5 @@ global xTarget, yTarget, zTarget, angleTarget
 global kalman_angle, disable_all_kalmans, solo_buscar_en_cercanias
 
 global frame, frame_time     # frame_time se puede usar para tratar el tema PID.
+
+global avanza, valor_movimiento, retrocede
