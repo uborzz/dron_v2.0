@@ -58,6 +58,10 @@ gb.zTarget = 20 # cm  # Pruebas corona hechas con Z 20
 gb.angleTarget = 180 # grados
 
 
+# prov.
+gb.traza_aux = 0
+
+
 recorder = rfs.Recorder()   # salva matriz de datos para analisis
 recorder.configure(identificador=timestamp, fps=gb.fps)
 
@@ -147,6 +151,11 @@ def main():
         # Localizador
         localizacion, estado_localizador = locator.posicion_dron(gb.frame)  # asignar a clase dron su localizador seria lo suyo.
         # Coger var que indike OK - NOK, o grado de OK del dron.
+
+        # # valor auxiliar para relacionar log programa con imagen video.
+        # print("Traza Aux:", str(gb.traza_aux))
+        # gb.traza_aux += 1
+
         gb.x, gb.y, gb.z, gb.head = localizacion
         if datetime.now() - gb.timerStart <= timedelta(seconds=2):
             continue

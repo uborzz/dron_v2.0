@@ -19,6 +19,7 @@ global xTarget, yTarget, zTarget, angleTarget
 
 # provisional
 global kalman_angle, disable_all_kalmans, solo_buscar_en_cercanias
+global traza_aux
 
 global frame, frame_time     # frame_time se puede usar para tratar el tema PID.
 

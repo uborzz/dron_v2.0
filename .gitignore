@@ -1,4 +1,5 @@
 recordings/*
 captures/*
-config/config_locator/*
 videos/*
+arduino/receptor/*
+config/config_locator/*

@@ -235,6 +235,9 @@ def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
 
     if video.is_enabled():
         cv2.putText(frame, "Recording", (10, 395), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("rojo"), 2)
+        # valor auxiliar para relacionar log programa con imagen video.
+        # cv2.putText(frame, "Aux: " + str(gb.traza_aux), (300, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("blanco"), 1)
+
 
 
 def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=None):
@@ -412,17 +415,19 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.set_mode("RETROCEDE")
 
     elif k==ord('6'):   # Activa Modo HOLD
+        controller.ignore_derivative_error = True
         dron.set_mode("HOLD")
 
     elif k==ord('7'):
         configurator.load_config_file("media_todos_ejes.json")
         controller.windup()  # chapuza windup
+        rango = 60
         bias = {
-            "aileron": int(sum(recorder.aileronRecord[-30:])/30),
+            "aileron": int(sum(recorder.aileronRecord[-rango:])/rango),
             "correccion_gravedad": 0,
-            "elevator": int(sum(recorder.elevatorRecord[-30:])/30),
-            "rudder": int(sum(recorder.rudderRecord[-30:])/30),
-            "throttle": int(sum(recorder.throttleRecord[-30:])/30)
+            "elevator": int(sum(recorder.elevatorRecord[-rango:])/rango),
+            "rudder": int(sum(recorder.rudderRecord[-rango:])/rango),
+            "throttle": int(sum(recorder.throttleRecord[-rango:])/rango)
         }
         configurator.modify_bias(bias, "media_todos_ejes.json")
         print("prov. Cambiando config PID a media_todos_ejes.json")
@@ -431,7 +436,7 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         configurator.load_config_file("media_bias_z.json")
         controller.windup()  # chapuza windup
         bias = {
-            "throttle": int(sum(recorder.throttleRecord[-30:])/30)
+            "throttle": int(sum(recorder.throttleRecord[-60:])/60)
         }
         configurator.modify_bias(bias, "media_bias_z.json")
         print("prov. Cambiando config PID a media_bias_z.json")
@@ -531,7 +536,7 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             controller.windup()
             dron.prueba_arduino_envios = 0
             controller.set_mode("NOVIEMBRE")
-            configurator.load_config_file("noviembre.json")
+            configurator.load_config_file("despegue.json")
             controller.control_pidlib_init()
             dron.set_mode("DESPEGUE")
             dron.flag_vuelo = True

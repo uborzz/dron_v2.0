@@ -69,6 +69,14 @@ class Controller():
 
         self.t_frame_previo = datetime.now().timestamp()
 
+        self.autoadjust = datetime.now()
+        self.necesario_windup = False
+        self.veces_autoajuste = 0
+        self.max_veces_autoajuste = 2
+
+        self.ignore_derivative_error = False
+
+
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
         if index >= len(self.modes_available):
@@ -159,35 +167,65 @@ class Controller():
         # Force down
 
         if self.dron.mode != "NO_INIT":
+            if self.dron.mode == "DESPEGUE":
+                if sum(recorder.zRecord[-6:])/6 >= gb.zTarget:
+                    configurator.load_config_file("noviembre.json")
+                    self.dron.set_mode("HOLD")
+                    self.autoadjust = datetime.now()
+                    self.necesario_windup = True
+                    self.veces_autoajuste = 0
 
-            try:
-                if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
-                    self.consecutive_frames_out_of_limits += 1
-                    if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
-                        print("FORCING DRON: A BAJAR!!!")
-                        # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
-                        self.dron.set_mode("HOLD")
-                        modo_panico = "BASICO_DISABLE_GFACTOR"
-                        # controller.set_mode("BASICO_LIMIT_Z")
-                        # controller.set_mode("BASICO_CLAMP_THROTTLE")
-                        self.set_mode(modo_panico)
-                        # self.windupZ()
-                        self.forcing_down = True
-                # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
-                #     consecutive_frames_out_of_limits += 1
-                else:
-                    self.consecutive_frames_out_of_limits = 0
+            elif self.dron.mode == "HOLD":
+                if self.veces_autoajuste < self.max_veces_autoajuste:
+                    tiempo_desde_ultimo_ajuste = datetime.now() - self.autoadjust
+                    if tiempo_desde_ultimo_ajuste >= timedelta(seconds=5):
+                        if self.necesario_windup:
+                            self.necesario_windup = False
+                            self.windup()
+                        self.veces_autoajuste += 1
+                        print("ajustando todos ejes a la vez...")
+                        configurator.load_config_file("media_todos_ejes.json")
+                        # self.windup()  # chapuza windup
+                        rango = 60
+                        bias = {
+                            "aileron": int(sum(recorder.aileronRecord[-rango:]) / rango),
+                            "correccion_gravedad": 0,
+                            "elevator": int(sum(recorder.elevatorRecord[-rango:]) / rango),
+                            "rudder": int(sum(recorder.rudderRecord[-rango:]) / rango),
+                            "throttle": int(sum(recorder.throttleRecord[-rango:]) / rango)
+                        }
+                        configurator.modify_bias(bias, "media_todos_ejes.json")
+                        self.autoadjust = datetime.now()
 
-                if self.forcing_down and gb.z <= gb.zTarget+10:
-                    print("DESCATIVANDO FORCING. Activando control: BASICO")
+            else:
+                try:
+                    if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
+                        self.consecutive_frames_out_of_limits += 1
+                        if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
+                            print("FORCING DRON: A BAJAR!!!")
+                            # midron.prepara_modo(timedelta(seconds=3), gb.throttle)
+                            self.dron.set_mode("HOLD")
+                            modo_panico = "BASICO_DISABLE_GFACTOR"
+                            # controller.set_mode("BASICO_LIMIT_Z")
+                            # controller.set_mode("BASICO_CLAMP_THROTTLE")
+                            self.set_mode(modo_panico)
+                            # self.windupZ()
+                            self.forcing_down = True
+                    # elif ((gb.z >= (gb.zTarget+20)) and (controller.mode == "BASICO" or controller.mode == "BASICO_CLAMP_THROTTLE" or controller.mode == modo_panico)):
+                    #     consecutive_frames_out_of_limits += 1
+                    else:
+                        self.consecutive_frames_out_of_limits = 0
+
+                    if self.forcing_down and gb.z <= gb.zTarget+10:
+                        print("DESCATIVANDO FORCING. Activando control: BASICO")
+                        self.forcing_down = False
+                        if windup: self.windupZ()
+                        self.set_mode("BASICO")
+                        self.consecutive_frames_out_of_limits = 0
+                except:
                     self.forcing_down = False
-                    if windup: self.windupZ()
                     self.set_mode("BASICO")
                     self.consecutive_frames_out_of_limits = 0
-            except:
-                self.forcing_down = False
-                self.set_mode("BASICO")
-                self.consecutive_frames_out_of_limits = 0
 
     def control_con_filtros(self):
         # Filtros y PID control
@@ -1438,10 +1476,15 @@ class Controller():
         self.angleErrorI += self.angleError
 
         # compute derivative (variation) of errors (D)
-        xErrorD = self.xError - xError_old
-        yErrorD = self.yError - yError_old
-        zErrorD = self.zError - zError_old
-        angleErrorD = self.angleError - angleError_old
+        if self.ignore_derivative_error:
+            xErrorD, yErrorD, zErrorD, angleErrorD = 0, 0, 0, 0
+            self.ignore_derivative_error = False
+        else:
+            xErrorD = self.xError - xError_old
+            yErrorD = self.yError - yError_old
+            zErrorD = self.zError - zError_old
+            angleErrorD = self.angleError - angleError_old
+
 
 
         # compute commands
@@ -1480,6 +1523,7 @@ class Controller():
         #     Z
         componente_ZP = gb.KPz * self.zError
         componente_ZD = gb.KDz * self.corrige_diferencia(zErrorD, tiempo_entre_frames)
+        componente_ZD = rfs.clamp(componente_ZD, -200, 200)
         # componente_ZD = gb.KDz * zErrorD
         # Acompasar Clamp general con clam integral Z (No funciona bien por los golpes de la diferencia)
         i, componente_ZI = gb.KIz, 0

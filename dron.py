@@ -107,11 +107,11 @@ class Dron:
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
         elif modo == "AVANZA":
-            l = recorder.elevatorRecord[-30:]
-            self.valor_maniobras = sum(l) / len(l) + 80
+            l = recorder.elevatorRecord[-60:]
+            self.valor_maniobras = sum(l) / len(l) - 50
         elif modo == "RETROCEDE":
-            l = recorder.elevatorRecord[-30:]
-            self.valor_maniobras = sum(l) / len(l) - 80
+            l = recorder.elevatorRecord[-60:]
+            self.valor_maniobras = sum(l) / len(l) + 60
         # elif modo == "HOLD":
         #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
         #     configurator.config_target(z=gb.z, a=gb.head)

@@ -175,9 +175,13 @@ class Localizador:
             head = math.atan2(x-self.circuloColor.x, y-self.circuloColor.y) # radianes
             head = int(math.degrees(head)) + 180
 
+        if self.debug: print("circuloLeido: ", self.circuloColor.x, self.circuloColor.y)
+
         # filtrar
         if not gb.disable_all_kalmans and gb.kalman_angle:
+            if self.debug: print("Antes kalman circular:", head)
             head = self.K_head.predict_and_correct(head)
+            if self.debug: print("Despues kalman circular:", head)
 
         self.head = head
 
@@ -380,6 +384,8 @@ class Circulo:
         # print("SELF I_XY: ", self.I_x, self.I_y)
 
         # print(x, y)
+        if self.debug: print("Dentro de circle: ", self.x, self.y)
+        if self.debug: print("Dentro de circle I_: ", self.I_x, self.I_y)
         cv2.circle(original, (self.I_x, self.I_y), 5, (255, 0, 255), -1)
         # cv2.imshow("keypointsCirculo", original)
         return(mask_inv)
