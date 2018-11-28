@@ -1450,7 +1450,7 @@ class Controller():
     def control_noviembre(self):
         # print("Entrando control_noviembre")
         # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
-        gb.angleTarget = 180
+        # gb.angleTarget = 180
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
 
@@ -1469,25 +1469,20 @@ class Controller():
         ##
         ##         igualmente.. vamos a probar
 
-        print("MEDIDA VISION:", xDrone, yDrone, angleDrone)
         distancia, angulo_movimiento = rfs.extrae_vector_posicion(xDrone, yDrone, gb.xTarget, gb.yTarget)
-        print("DISTANCIA, ANGULO MOV:", distancia, angulo_movimiento)
         angulo_giro = rfs.diferencia_angulos(angleDrone, angulo_movimiento)
-        print("ANGULO RELATIVO GIRO:", angulo_giro)
         xErrorNuevo, yErrorNuevo = rfs.extrae_componentes(distancia, angulo_giro)
-        print("ERROR TUNEADO X, Y:",  xErrorNuevo, yErrorNuevo)
 
         # print("control!")
         # print(gb.frame_time - self.t_frame_previo)
         tiempo_entre_frames = (gb.frame_time - self.t_frame_previo)
 
         xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
-        self.xError = gb.xTarget - xDrone
-        self.yError = gb.yTarget - yDrone
-        print("ERROR METODO OLD:", self.xError, self.yError)
-
+        self.xError = xErrorNuevo
+        self.yError = yErrorNuevo
         self.zError = gb.zTarget - zDrone
-        self.angleError = gb.angleTarget - angleDrone
+        # self.angleError = gb.angleTarget - angleDrone     # cambiar por la resta mejorada
+        self.angleError = rfs.diferencia_angulos(gb.angleTarget, angleDrone)
 
         # Trucar gravedad intento 1:
         if self.zError < 0 and gb.correccion_gravedad > 0: self.zError /= gb.correccion_gravedad

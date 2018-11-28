@@ -423,18 +423,18 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
 
 
     elif k==ord('4'):   # Activa Modo avanza
-        if dron.get_mode() == "AVANZA":
-            # dron.activar_modo_previo()
-            pass
-        else:
-            dron.set_mode("AVANZA")
-
-    elif k==ord('5'):   # Activa Modo retrocede
         if dron.get_mode() == "RETROCEDE":
             # dron.activar_modo_previo()
             pass
         else:
             dron.set_mode("RETROCEDE")
+
+    elif k==ord('5'):   # Activa Modo retrocede
+        if dron.get_mode() == "AVANZA":
+            # dron.activar_modo_previo()
+            pass
+        else:
+            dron.set_mode("AVANZA")
 
     elif k==ord('6'):   # Activa Modo HOLD
         controller.ignore_derivative_error = True
