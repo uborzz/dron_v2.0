@@ -20,7 +20,9 @@
 
 static uint8_t Bayang_rf_chan;
 static uint8_t Bayang_rf_channels[BAYANG_RF_NUM_CHANNELS] = {0,};
-static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH];
+// static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH];
+// PROBANDO
+static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'u','b','o','r','Z'};
 
 enum{
     // flags going to packet[2]
@@ -47,12 +49,16 @@ void Bayang_init()
 {
     uint8_t i;
     const u8 bind_address[] = {0,0,0,0,0};
-    for(i=0; i<BAYANG_ADDRESS_LENGTH; i++) {
-        Bayang_rx_tx_addr[i] = random() & 0xff;
-    }
+    //for(i=0; i<BAYANG_ADDRESS_LENGTH; i++) {
+    //    Bayang_rx_tx_addr[i] = random() & 0xff;
+    //}
+    
     Bayang_rf_channels[0] = 0x00;
     for(i=1; i<BAYANG_RF_NUM_CHANNELS; i++) {
-        Bayang_rf_channels[i] = random() % 0x42;
+        Bayang_rf_channels[0] = 0x21;
+        Bayang_rf_channels[1] = 0x17;
+        Bayang_rf_channels[2] = 0x37;
+        Bayang_rf_channels[3] = 0x02;
     }
     NRF24L01_Initialize();
     NRF24L01_SetTxRxMode(TX_EN);

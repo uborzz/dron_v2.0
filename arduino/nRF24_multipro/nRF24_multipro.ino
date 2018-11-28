@@ -268,15 +268,10 @@ void loop()
 
 void set_txid(bool renew)
 {
-    uint8_t i;
-    for(i=0; i<4; i++)
-        transmitterID[i] = EEPROM.read(ee_TXID0+i);
-    if(renew || (transmitterID[0]==0xFF && transmitterID[1]==0x0FF)) {
-        for(i=0; i<4; i++) {
-            transmitterID[i] = random() & 0xFF;
-            EEPROM.update(ee_TXID0+i, transmitterID[i]);
-        }
-    }
+  transmitterID[0] = 'r';
+  transmitterID[1] = 'a';
+  transmitterID[2] = 'd';
+  transmitterID[3] = 'y';
 }
 
 void selectProtocol()
