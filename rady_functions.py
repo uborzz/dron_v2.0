@@ -268,6 +268,28 @@ def pinta_en_posicion(valores, posicion):
         offset += 20  # baja 20 pixeles.
 
 
+def diferencia_angulos(angulo1, angulo2):
+    angulo = angulo1 - angulo2
+    if angulo <= -180:
+        angulo += 360
+    elif angulo > 180:
+        angulo -= 360
+    return angulo
+
+def extrae_vector_posicion(xi, yi, xf, yf):
+    direccion = math.atan2(xi - xf, yi - yf)  # radianes
+    direccion = int(math.degrees(direccion)) + 180
+    modulo = int(math.sqrt((xi - xf)**2 + (yi - yf)**2))
+    return modulo, direccion
+
+def extrae_componentes(modulo, angulo, ints=True):
+    rads = math.radians(angulo)
+    y = -modulo * math.cos(rads)
+    x = modulo * math.sin(rads)
+    if ints:
+        x, y = int(x), int(y)
+    return x, y
+
 def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
 

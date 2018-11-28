@@ -280,7 +280,6 @@ class Controller():
         # store previous errors in position (cm) and angle (degrees) (to compute variation of error)
         xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
 
-
         if self.print_info: print("[LEIDO FILTRADO]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(xDroneFiltered, yDroneFiltered, zDroneFiltered, angleDroneFilteredTuneado))
         # PRUEBAS CON FILTRO BUTTERWORTH - LIFTLFT - 0 phase
         xError = gb.xTarget - xDroneFiltered
@@ -1454,6 +1453,30 @@ class Controller():
         gb.angleTarget = 180
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
+
+        ##### Conversion X e Y para correccion aileron y elevator.
+        ## xDrone e yDrone ya no serian las posiciones leidas directamente de la vision?
+        ##      el error es lo que sería diferente y dependeria del angulo ...
+        ##      el error es la diferencia en pixeles  solamente porque el angulo era hasta ahora siempre 180
+        ##          pos objetivo - pos dron -> x e y directas
+        ##          en realidad eso seria igual que...
+        ##          angulo_de(pos objetivo-pos dron) * pos_seno(angulo dron) = x
+        ##          angulo_de(pos objetivo-pos dron) * pos_coseno(angulo dron) = y
+        ##          donde en el caso de dron a 180º coincide con las medidas directas de x e y
+        ##      por lo que...
+        ##          la medida del angulo nos va a afectar directamente a los valores de X e Y, eso me parece una mierda.
+        ##          si la visión no capta muy bien el ángulo en una afectaría a las otros 2 componentes.
+        ##
+        ##         igualmente.. vamos a probar
+
+        print("MEDIDA VISION:", xDrone, yDrone, angleDrone)
+        distancia, angulo_movimiento = rfs.extrae_vector_posicion(xDrone, yDrone, gb.xTarget, gb.yTarget)
+        print("DISTANCIA, ANGULO MOV:", distancia, angulo_movimiento)
+        angulo_giro = rfs.diferencia_angulos(angleDrone, angulo_movimiento)
+        print("ANGULO RELATIVO GIRO:", angulo_giro)
+        xErrorNuevo, yErrorNuevo = rfs.extrae_componentes(distancia, angulo_giro)
+        print("ERROR TUNEADO X, Y:",  xErrorNuevo, yErrorNuevo)
+
         # print("control!")
         # print(gb.frame_time - self.t_frame_previo)
         tiempo_entre_frames = (gb.frame_time - self.t_frame_previo)
@@ -1461,6 +1484,8 @@ class Controller():
         xError_old, yError_old, zError_old, angleError_old = self.xError, self.yError, self.zError, self.angleError
         self.xError = gb.xTarget - xDrone
         self.yError = gb.yTarget - yDrone
+        print("ERROR METODO OLD:", self.xError, self.yError)
+
         self.zError = gb.zTarget - zDrone
         self.angleError = gb.angleTarget - angleDrone
 

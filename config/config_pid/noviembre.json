@@ -8,10 +8,10 @@
     },
     "pid": {
         "KDangle": 0,
-        "KDx": 10,
-        "KDy": 11,
+        "KDx": 7,
+        "KDy": 7,
         "KDz": 170,
-        "KIangle": 0.0,
+        "KIangle": 0.02,
         "KIx": 0.02,
         "KIy": 0.02,
         "KIz": 0.5,
