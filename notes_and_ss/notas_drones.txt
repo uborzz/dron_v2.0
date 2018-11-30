@@ -71,7 +71,7 @@ Pruebas retardo camara con cable blanco: 100-140 ms. Similar a sin cable.
     Knowdldg.
 ##################
 
-Modos de vuelo tipicos drones:
+Modos de vuelo típicos minidrones:
     https://www.dummies.com/consumer-electronics/drones/drone-flight-modes/
 
 Modo controller:

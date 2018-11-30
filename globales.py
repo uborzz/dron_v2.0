@@ -24,3 +24,6 @@ global traza_aux
 global frame, frame_time     # frame_time se puede usar para tratar el tema PID.
 
 global avanza, valor_movimiento, retrocede
+
+global path_x1, path_y1, path_x2, path_y2, path_x3, path_y3
+global fp1, fp2, fp3, path_x, path_y, path_angle

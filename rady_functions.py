@@ -557,6 +557,7 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         elif k == ord('f'): # Antes PID lib más cutre.
             controller.windup()
             dron.prueba_arduino_envios = 0
+            controller.init_planner()
             controller.set_mode("NOVIEMBRE")
             configurator.load_config_file("despegue.json")
             controller.control_pidlib_init()
@@ -576,6 +577,12 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.set_mode("DESPEGUE")
             controller.set_mode("CALIB_BIAS")
             dron.flag_vuelo = True
+
+
+def calcula_angulo_en_punto(x_objetivo, y_objetivo, x_actual, y_actual):
+    a = 180 + int(math.degrees(math.atan2(x_actual - x_objetivo, y_actual - y_objetivo)))
+    if a >= 360: a -= 360
+    cv2.setTrackbarPos("A Target", "target", a)
 
 
 def evalua_click(event, x, y, dron, controller, localizador, frame):

@@ -60,6 +60,7 @@ gb.angleTarget = 180 # grados
 
 # prov.
 gb.traza_aux = 0
+gb.fp1 = gb.fp2 = gb.fp3 = 0
 
 
 recorder = rfs.Recorder()   # salva matriz de datos para analisis

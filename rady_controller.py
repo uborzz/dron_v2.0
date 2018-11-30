@@ -74,7 +74,11 @@ class Controller():
         self.veces_autoajuste = 0
         self.max_veces_autoajuste = 2
 
+
+        # MUY PROVISIONAL, PRUEBAS
         self.ignore_derivative_error = False
+        self.provisional_planner = 0
+        self.provisional_planner_ts = datetime.now()
 
 
     def change_mode(self):
@@ -161,24 +165,48 @@ class Controller():
         #         return self.control_calib_bias()
         return()
 
+    def init_planner(self):
+        self.provisional_planner = 0
+        self.provisional_planner_ts = datetime.now()
+
     # Provisional, Logica que cambia modos de control - todo pasar a modo del dron..
     def run_meta_selector(self, windup=False):
         # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
         # Force down
 
+        # # Desarrollar un planner / navegador que lea de instrucciones de un fichero.
+        # self.provisional_planner = (datetime.now() - self.provisional_planner_ts).seconds
+        # if self.provisional_planner >= 12 and self.dron.mode == "HOLD":
+        #     gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
+        #     if
+        #
+        #     # funcion objetivo dentro area
+        # if self.dron.mode == "AVANZA":
+        #     en_punto = False
+        #     if gb.x <= gb
+        #     if en_punto:
+        #
+        #         self.autoadjust = datetime.now()
+        #         self.veces_autoajuste = self.max_veces_autoajuste - 1
+        #         self.dron.set_mode("HOLD")
+
+
         if self.dron.mode != "NO_INIT":
             if self.dron.mode == "DESPEGUE":
-                if sum(recorder.zRecord[-6:])/6 >= gb.zTarget:
+                if sum(recorder.zRecord[-6:])/6 >= (gb.zTarget-5):
                     configurator.load_config_file("noviembre.json")
                     self.dron.set_mode("HOLD")
                     self.autoadjust = datetime.now()
                     self.necesario_windup = True
                     self.veces_autoajuste = 0
 
+            if self.dron.mode == "AVANZA":
+                pass
+
             elif self.dron.mode == "HOLD":
                 if self.veces_autoajuste < self.max_veces_autoajuste:
                     tiempo_desde_ultimo_ajuste = datetime.now() - self.autoadjust
-                    if tiempo_desde_ultimo_ajuste >= timedelta(seconds=5):
+                    if tiempo_desde_ultimo_ajuste >= timedelta(seconds=4):
                         if self.necesario_windup:
                             self.necesario_windup = False
                             self.windup()

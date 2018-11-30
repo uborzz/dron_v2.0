@@ -30,7 +30,7 @@ class video_writer:
 
         if filename == None:
             # automatic nombre
-            name = "{:%d_%H_%M}.avi".format(datetime.now())
+            name = "{:%y%m%d_%H%M}.avi".format(datetime.now())
             self.filename = 'videos/' + name
 
         # Define the codec and create VideoWriter object

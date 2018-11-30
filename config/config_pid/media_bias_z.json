@@ -1,0 +1,23 @@
+{
+    "bias": {
+        "aileron": 1501,
+        "correccion_gravedad": 0,
+        "elevator": 1463,
+        "rudder": 1500,
+        "throttle": 1567
+    },
+    "pid": {
+        "KDangle": 0,
+        "KDx": 5,
+        "KDy": 6,
+        "KDz": 170,
+        "KIangle": 0.01,
+        "KIx": 0.02,
+        "KIy": 0.02,
+        "KIz": 0.5,
+        "KPangle": 2,
+        "KPx": 0.35,
+        "KPy": 0.35,
+        "KPz": 5
+    }
+}
