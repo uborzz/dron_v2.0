@@ -290,6 +290,19 @@ def extrae_componentes(modulo, angulo, ints=True):
         x, y = int(x), int(y)
     return x, y
 
+
+def evalua_llegada_meta(rad):
+    global frame
+    # Punto actual en radio r alrededor del punto objetivo
+    circle_x, circle_y = gb.path_x, gb.path_y
+    x, y = gb.x, gb.y
+    cv2.circle(frame, (gb.xTarget, gb.yTarget), rad, tupla_BGR("verde"), 1)
+    if ((x - circle_x)**2 + (y - circle_y)**2) <= (rad**2):
+        return True
+    else:
+        return False
+
+
 def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     # Retorna True si el programa debe acabaraaaaaaaaaaaaa
 
@@ -615,8 +628,8 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
             # Nuevos targets
 
             # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
-            gb.xTarget = x  # pixeles
-            gb.yTarget = y  # pixeles
+            gb.path_x = x  # pixeles
+            gb.path_y = y  # pixeles
             # controller.windupXY()     # 181025 - no resetear
             print("target point:")
             print(x, y)

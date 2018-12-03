@@ -160,6 +160,8 @@ class Controller():
             return self.control_avanza()
         elif self.dron.mode == "RETROCEDE":
             return self.control_retrocede()
+        elif self.dron.mode == "APUNTA":
+            return self.control_noviembre()
         # elif self.dron.mode == "NO_INIT":
         #     if self.mode == "CALIB_BIAS":
         #         return self.control_calib_bias()
@@ -168,6 +170,21 @@ class Controller():
     def init_planner(self):
         self.provisional_planner = 0
         self.provisional_planner_ts = datetime.now()
+
+
+    def run_autoajuste(self, autoajustes):
+        pass
+
+
+    def swap_to_mode_hold(self, ajustes):
+        if self.dron.get_mode() == "AVANZA":
+            recorder.elevatorRecord[-60:] = [self.dron.valor_maniobras for i in range(60)]
+        self.ignore_derivative_error = True
+        self.necesario_windup = True
+        self.veces_autoajuste = self.max_veces_autoajuste-ajustes
+        self.autoadjust = datetime.now()
+        self.dron.set_mode("HOLD")
+
 
     # Provisional, Logica que cambia modos de control - todo pasar a modo del dron..
     def run_meta_selector(self, windup=False):
@@ -180,7 +197,7 @@ class Controller():
         #     gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
         #     if
         #
-        #     # funcion objetivo dentro area
+        # # funcion objetivo dentro area
         # if self.dron.mode == "AVANZA":
         #     en_punto = False
         #     if gb.x <= gb
@@ -195,15 +212,18 @@ class Controller():
             if self.dron.mode == "DESPEGUE":
                 if sum(recorder.zRecord[-6:])/6 >= (gb.zTarget-5):
                     configurator.load_config_file("noviembre.json")
-                    self.dron.set_mode("HOLD")
-                    self.autoadjust = datetime.now()
-                    self.necesario_windup = True
-                    self.veces_autoajuste = 0
+                    self.swap_to_mode_hold(2)
 
-            if self.dron.mode == "AVANZA":
+            if self.dron.mode == "APUNTA":
+                gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
                 pass
 
-            elif self.dron.mode == "HOLD":
+            elif self.dron.mode == "AVANZA":
+                # si el dron esta en punto cercano al target: cambia amodo hold con swap_to_mode_hold
+                if rfs.evalua_llegada_meta(40):
+                    self.swap_to_mode_hold(1)
+
+            if self.dron.mode == "HOLD":
                 if self.veces_autoajuste < self.max_veces_autoajuste:
                     tiempo_desde_ultimo_ajuste = datetime.now() - self.autoadjust
                     if tiempo_desde_ultimo_ajuste >= timedelta(seconds=4):
@@ -226,6 +246,7 @@ class Controller():
                         self.autoadjust = datetime.now()
 
             else:
+                ## Provisionalmente esto no estará funcionando - 2018/12/03
                 try:
                     if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
                         self.consecutive_frames_out_of_limits += 1
@@ -1482,20 +1503,20 @@ class Controller():
         xDrone, yDrone, zDrone, angleDrone = gb.x, gb.y, gb.z, gb.head
 
 
-        ##### Conversion X e Y para correccion aileron y elevator.
-        ## xDrone e yDrone ya no serian las posiciones leidas directamente de la vision?
-        ##      el error es lo que sería diferente y dependeria del angulo ...
-        ##      el error es la diferencia en pixeles  solamente porque el angulo era hasta ahora siempre 180
-        ##          pos objetivo - pos dron -> x e y directas
-        ##          en realidad eso seria igual que...
-        ##          angulo_de(pos objetivo-pos dron) * pos_seno(angulo dron) = x
-        ##          angulo_de(pos objetivo-pos dron) * pos_coseno(angulo dron) = y
-        ##          donde en el caso de dron a 180º coincide con las medidas directas de x e y
-        ##      por lo que...
-        ##          la medida del angulo nos va a afectar directamente a los valores de X e Y, eso me parece una mierda.
-        ##          si la visión no capta muy bien el ángulo en una afectaría a las otros 2 componentes.
-        ##
-        ##         igualmente.. vamos a probar
+        # ### Conversion X e Y para correccion aileron y elevator.
+        # xDrone e yDrone ya no serian las posiciones leidas directamente de la vision?
+        #      el error es lo que sería diferente y dependeria del angulo ...
+        #      el error es la diferencia en pixeles  solamente porque el angulo era hasta ahora siempre 180
+        #          pos objetivo - pos dron -> x e y directas
+        #          en realidad eso seria igual que...
+        #          angulo_de(pos objetivo-pos dron) * pos_seno(angulo dron) = x
+        #          angulo_de(pos objetivo-pos dron) * pos_coseno(angulo dron) = y
+        #          donde en el caso de dron a 180º coincide con las medidas directas de x e y
+        #      por lo que...
+        #          la medida del angulo nos va a afectar directamente a los valores de X e Y, eso me parece una mierda.
+        #          si la visión no capta muy bien el ángulo en una afectaría a las otros 2 componentes.
+        #
+        #         igualmente.. vamos a probar
 
         distancia, angulo_movimiento = rfs.extrae_vector_posicion(xDrone, yDrone, gb.xTarget, gb.yTarget)
         angulo_giro = rfs.diferencia_angulos(angleDrone, angulo_movimiento)
