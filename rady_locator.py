@@ -19,6 +19,7 @@ import kalman_jc as kf
 import kalman_circular as kfc
 import math
 import globales as gb
+import rady_functions as rfs
 
 def kernel_cuadrado(n):
     return np.ones((n, n), np.uint8)
@@ -101,6 +102,7 @@ class Localizador:
         # self.K_z = kf.KalmanFilter(1, 1)
 
         self.head = 0
+        self.previous_heads = rfs.rady_ring(5)
         # self.K_head = kfc.kalman_circular(0.5, 30) # prueba filtro
         self.K_head = kfc.kalman_circular(4, 6)
 
@@ -172,17 +174,25 @@ class Localizador:
             head = self.head
             status = False
         else:
-            head = math.atan2(x-self.circuloColor.x, y-self.circuloColor.y) # radianes
+            head = math.atan2(x-self.circuloColor.I_x, y-self.circuloColor.I_y) # radianes
             head = int(math.degrees(head)) + 180
 
         if self.debug: print("circuloLeido: ", self.circuloColor.x, self.circuloColor.y)
 
-        # filtrar
+
+        # filtrar kalman
         if not gb.disable_all_kalmans and gb.kalman_angle:
             if self.debug: print("Antes kalman circular:", head)
             head = self.K_head.predict_and_correct(head)
             if self.debug: print("Despues kalman circular:", head)
 
+        ## 2018/12/04
+        ## excluir medida? hacer esta historia general??:
+        head_mean = self.previous_heads.meanangles()
+        if abs(head - head_mean) >= 90:
+            head = rfs.meanangle([head, head_mean])  # en cierto modo le damos peso a la media anterior y anadimos el nuevo valor.
+
+        self.previous_heads.append(head)
         self.head = head
 
         # Para dibujar la flecha direccion
@@ -192,7 +202,6 @@ class Localizador:
         if self.info: print("[LOCALIZADOR]: X={:.1f} Y={:.1f} Z={:.1f} angle={:.1f}".format(x, y, z, head))
 
         cv2.arrowedLine(frame, (x,y), (x2, y2), (50,255,230), 2)
-
 
 
         # DRAW:

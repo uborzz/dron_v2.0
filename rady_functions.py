@@ -18,6 +18,7 @@ import globales as gb
 import scipy.io
 import math
 import time
+import collections
 from rady_configurator import Configurator
 from datetime import datetime, timedelta
 from video_writer import video_writer
@@ -55,27 +56,56 @@ def clamp(n, minimum, maximum):
     return max(min(maximum, n), minimum)
 
 
-class RingBuffer():
-    "A 1D ring buffer using numpy arrays"
-    def __init__(self, length):
-        self.length = length
-        self.data = np.zeros(length, dtype='f')
-        self.index = 0
+def meanangle(angles, weights=0, setting='degrees'):
+    '''computes the mean angle'''
+    if weights == 0:
+         weights = np.ones(len(angles))
+    sumsin = 0
+    sumcos = 0
+    if setting == 'degrees':
+        angles = np.array(angles)*math.pi/180
+    for i in range(len(angles)):
+        sumsin += weights[i]/sum(weights)*math.sin(angles[i])
+        sumcos += weights[i]/sum(weights)*math.cos(angles[i])
+    average = math.atan2(sumsin,sumcos)
+    if setting == 'degrees':
+        average = average*180/math.pi
+        if average < 0:
+            average += 360
+        average = int(average)
+    return average
+
+# buffer circular
+class rady_ring():
+    def __init__(self, size):
+        self.data = [0] * size
+        self.size = size
+
+    def append(self, x):
+        self.data.pop(0)
+        self.data.append(x)
 
     def extend(self, x):
-        "adds array x to ring buffer"
-        x_index = (self.index + np.arange(1)) % self.data.size
-        self.data[x_index] = x
-        self.index = x_index[-1] + 1
+        self.data.pop(0)
+        self.data.append(x)
 
     def get(self):
-        "Returns the first-in-first-out data in the ring buffer"
-        idx = (self.index + np.arange(self.data.size)) % self.data.size
-        return self.data[idx]
+        return self.data
+
+    def get_last(self):
+        return self.data[-1]
 
     def mean(self):
-        return (self.data.mean())
+        return (sum(self.data)/self.size)
 
+    def meanangles(self):
+        return (meanangle(self.data))
+
+    def diff_mean(self):
+        pass
+
+    def __repr__(self):
+        return str(self.data)
 
 def tupla_BGR(color = "blanco"):
     if color == "verde":            res = (0, 255, 0)
@@ -210,6 +240,7 @@ class Recorder(object):
 
 recorder = Recorder()
 
+
 def pinta_informacion_en_frame(frame, dron, controller, fps=None, t_frame=None):
     # CURRENT INFO
     cv2.putText(frame, "X: " + str(gb.x), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"), 1)
@@ -290,13 +321,18 @@ def extrae_componentes(modulo, angulo, ints=True):
         x, y = int(x), int(y)
     return x, y
 
+def pinta_circulo_target(rad, macizo=False, color="verde"):
+    if macizo:
+        grosor = -1
+    else:
+        grosor = 1
+    cv2.circle(gb.frame, (gb.path_x, gb.path_y), rad, tupla_BGR(color), grosor)
 
 def evalua_llegada_meta(rad):
-    global frame
     # Punto actual en radio r alrededor del punto objetivo
     circle_x, circle_y = gb.path_x, gb.path_y
     x, y = gb.x, gb.y
-    cv2.circle(frame, (gb.xTarget, gb.yTarget), rad, tupla_BGR("verde"), 1)
+    pinta_circulo_target(rad)
     if ((x - circle_x)**2 + (y - circle_y)**2) <= (rad**2):
         return True
     else:
@@ -435,12 +471,16 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         dron.set_mode("LAND")
 
 
-    elif k==ord('4'):   # Activa Modo avanza
-        if dron.get_mode() == "RETROCEDE":
-            # dron.activar_modo_previo()
-            pass
-        else:
-            dron.set_mode("RETROCEDE")
+    # elif k==ord('4'):   # Activa Modo avanza
+    #     if dron.get_mode() == "RETROCEDE":
+    #         # dron.activar_modo_previo()
+    #         pass
+    #     else:
+    #         dron.set_mode("RETROCEDE")
+    ## RECUPERANDO KEYS
+
+    # elif k==ord('4'):
+    #     dron.set_mode("APUNTA")
 
     elif k==ord('5'):   # Activa Modo retrocede
         if dron.get_mode() == "AVANZA":
@@ -596,6 +636,7 @@ def calcula_angulo_en_punto(x_objetivo, y_objetivo, x_actual, y_actual):
     a = 180 + int(math.degrees(math.atan2(x_actual - x_objetivo, y_actual - y_objetivo)))
     if a >= 360: a -= 360
     cv2.setTrackbarPos("A Target", "target", a)
+    return a
 
 
 def evalua_click(event, x, y, dron, controller, localizador, frame):
@@ -623,25 +664,19 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
 
     else:
         if event == cv2.EVENT_LBUTTONUP:
-            print("Color picker!")
-
-            # Nuevos targets
+            print("Target clicked! -", str(x), str(y))
 
             # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
             gb.path_x = x  # pixeles
             gb.path_y = y  # pixeles
             # controller.windupXY()     # 181025 - no resetear
-            print("target point:")
-            print(x, y)
 
-            a = 180 + int(math.degrees(math.atan2(localizador.coronaNaranja.x - x, localizador.coronaNaranja.y - y)))
-            if a >= 360: a -= 360
-            cv2.setTrackbarPos("A Target", "target", a)
-            print("target angulo:")
-            print(a)
+            # comentado 2018/12/04
+            # a = 180 + int(math.degrees(math.atan2(localizador.coronaNaranja.x - x, localizador.coronaNaranja.y - y)))
+            # if a >= 360: a -= 360
+            # cv2.setTrackbarPos("A Target", "target", a)
+            dron.set_mode("APUNTA")
 
-
-            # controller.control_simple_pid_init()
-            # print("PID de la lib simple_pid seteados valores target.")
-
-            controller.control_pidlib_target(x=x, y=y)
+            # # controller.control_simple_pid_init()
+            # # print("PID de la lib simple_pid seteados valores target.")
+            # controller.control_pidlib_target(x=x, y=y)
