@@ -80,6 +80,9 @@ class Controller():
         self.provisional_planner = 0
         self.provisional_planner_ts = datetime.now()
 
+        #... en la misma linea, prov. pruebas rapida para prueba funcionamiento.
+        self.flag_esperando = False
+
 
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
@@ -176,17 +179,54 @@ class Controller():
         pass
 
 
-    def swap_to_mode_hold(self, ajustes):
+    def swap_to_mode_hold(self, numero_ajustes):
         if self.dron.get_mode() == "AVANZA":
-            recorder.elevatorRecord[-60:] = [self.dron.valor_maniobras for i in range(60)]
+            recorder.elevatorRecord[-60:] = [self.dron.valor_maniobras] * 60
         self.ignore_derivative_error = True
         self.necesario_windup = True
-        self.veces_autoajuste = self.max_veces_autoajuste-ajustes
+        self.veces_autoajuste = self.max_veces_autoajuste-numero_ajustes
         self.autoadjust = datetime.now()
         self.dron.set_mode("HOLD")
 
+    def swap_to_mode_avanza(self):
+        pass
 
-    # Provisional, Logica que cambia modos de control - todo pasar a modo del dron..
+    def set_path_target_as_target(self):
+        gb.xTarget = gb.path_x
+        gb.yTarget = gb.path_y
+        print("path point target is the new target:", str(gb.xTarget), str(gb.yTarget))
+
+
+    def angulo_alcanzado(self):
+        a_target = gb.angleTarget
+        a_measured = gb.head
+        print("TARG:", gb.angleTarget)
+        print("MEAS:", gb.head)
+        if a_target >= 180: a_target -= 360
+        if a_measured >= 180: a_measured -= 360
+        if abs(a_target - a_measured) <= 5:
+            return True
+        return False
+
+
+    ## Esperas...
+    def inicia_espera(self, segundos):
+        self.flag_esperando = True
+        self.t_espera_caducidad = datetime.now() + timedelta(seconds=segundos)
+
+    def get_flag_esperando(self):
+        return self.flag_esperando
+
+    def t_espera_vencido(self):
+        if (datetime.now() >= self.t_espera_caducidad):
+            return True
+        return False
+
+    def reset_espera(self):
+        self.flag_esperando = False
+
+
+    # Provisional, Logica que cambia modos de control - todo pasar a modo del dron...
     def run_meta_selector(self, windup=False):
         # print("[TEMPORAL: {} - {} - {}]".format(gb.z, controller.mode, gb.zTarget))
         # Force down
@@ -207,7 +247,6 @@ class Controller():
         #         self.veces_autoajuste = self.max_veces_autoajuste - 1
         #         self.dron.set_mode("HOLD")
 
-
         if self.dron.mode != "NO_INIT":
             if self.dron.mode == "DESPEGUE":
                 if sum(recorder.zRecord[-6:])/6 >= (gb.zTarget-5):
@@ -216,11 +255,23 @@ class Controller():
 
             if self.dron.mode == "APUNTA":
                 gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
-                pass
+                if self.angulo_alcanzado():
+                    rfs.pinta_circulo_target(4, macizo=True, color="verde")
+                else:
+                    rfs.pinta_circulo_target(4, macizo=True, color="rojo")
+                if self.angulo_alcanzado() and not self.get_flag_esperando():
+                    secs_espera = 4
+                    print("Apuntando hacia punto objetivo, esperando " + str(secs_espera) + " segundos.")
+                    self.inicia_espera(secs_espera)
+                elif self.get_flag_esperando() and self.t_espera_vencido():
+                    self.dron.set_mode("AVANZA")
+                    self.reset_espera()
 
             elif self.dron.mode == "AVANZA":
                 # si el dron esta en punto cercano al target: cambia amodo hold con swap_to_mode_hold
-                if rfs.evalua_llegada_meta(40):
+                gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
+                if rfs.evalua_llegada_meta(40): # evalua_llegada_meta ya pinta circulo objetivo
+                    self.set_path_target_as_target()
                     self.swap_to_mode_hold(1)
 
             if self.dron.mode == "HOLD":
