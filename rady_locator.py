@@ -142,7 +142,9 @@ class Localizador:
         # print("objeto: ", str(objeto))
         if vista_objeto:
             # aprox para 14 cm - 10945
-            return(hmax - 10945*(corona/13)/vista_objeto) # Max distancia 200 cm.
+            res = hmax - 10945*(corona/13)/vista_objeto # Max distancia 200 cm.
+            res = rfs.clamp(res, 0, 70)
+            return(res)
         else:
             return 0
 
@@ -189,7 +191,7 @@ class Localizador:
         ## 2018/12/04
         ## excluir medida? hacer esta historia general??:
         head_mean = self.previous_heads.meanangles()
-        if abs(head - head_mean) >= 90:
+        if abs(head - head_mean) >= 50:
             head = rfs.meanangle([head, head_mean])  # en cierto modo le damos peso a la media anterior y anadimos el nuevo valor.
 
         self.previous_heads.append(head)

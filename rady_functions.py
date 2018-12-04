@@ -417,13 +417,13 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         # midron.send_command("1500,1700,1470,1500,0,0,0,1")
         dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
         time.sleep(0.05)
-        lectura = dron.port.read(1000)
+        lectura = dron.read(1000)
         print("Lectura INIT enviado: ", lectura)
         # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
         # dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
         # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
         time.sleep(4)
-        lectura = dron.port.read(1000)
+        lectura = dron.read(1000)
         print("Saliendo INIT: ", lectura)
         # time.sleep(1)
         # elif k == ord('x'):
@@ -598,7 +598,7 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.panic()
             controller.windup()  # chapuza windup
             dron.flag_vuelo = False
-            leidobuffer = dron.port.read(10000)
+            leidobuffer = dron.read(10000)
             leidolist = leidobuffer.splitlines()
             print(leidobuffer)
             print("Mandados: {} - Respuestas: {}".format(totalenvios, len(leidolist)))

@@ -112,7 +112,7 @@ class Stream:
         if platform.system() == "Linux":
             return 0.03
         elif platform.system() == "Windows":
-            return 3
+            return 1
         else:
             return 0.3
 
@@ -123,26 +123,32 @@ class Stream:
 
     def sube_contraste(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        print("Contraste previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo + self.default_increment)
 
     def baja_contraste(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_CONTRAST)
+        print("Contraste previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_CONTRAST, valor_previo - self.default_increment)
 
     def sube_brillo(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        print("Brillo previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo + self.default_increment)
 
     def baja_brillo(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_BRIGHTNESS)
+        print("Brillo previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_BRIGHTNESS, valor_previo - self.default_increment)
 
     def sube_saturacion(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        print("Saturacion previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo + self.default_increment)
 
     def baja_saturacion(self):
         valor_previo = self.stream.get(cv2.CAP_PROP_SATURATION)
+        print("Saturacion previo:", valor_previo)
         self.stream.set(cv2.CAP_PROP_SATURATION, valor_previo - self.default_increment)
 
     def sube_exposicion(self):

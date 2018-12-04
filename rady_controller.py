@@ -200,8 +200,6 @@ class Controller():
     def angulo_alcanzado(self):
         a_target = gb.angleTarget
         a_measured = gb.head
-        print("TARG:", gb.angleTarget)
-        print("MEAS:", gb.head)
         if a_target >= 180: a_target -= 360
         if a_measured >= 180: a_measured -= 360
         if abs(a_target - a_measured) <= 5:
@@ -260,7 +258,7 @@ class Controller():
                 else:
                     rfs.pinta_circulo_target(4, macizo=True, color="rojo")
                 if self.angulo_alcanzado() and not self.get_flag_esperando():
-                    secs_espera = 4
+                    secs_espera = 2
                     print("Apuntando hacia punto objetivo, esperando " + str(secs_espera) + " segundos.")
                     self.inicia_espera(secs_espera)
                 elif self.get_flag_esperando() and self.t_espera_vencido():
@@ -270,7 +268,7 @@ class Controller():
             elif self.dron.mode == "AVANZA":
                 # si el dron esta en punto cercano al target: cambia amodo hold con swap_to_mode_hold
                 gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
-                if rfs.evalua_llegada_meta(40): # evalua_llegada_meta ya pinta circulo objetivo
+                if rfs.evalua_llegada_meta(55): # evalua_llegada_meta ya pinta circulo objetivo
                     self.set_path_target_as_target()
                     self.swap_to_mode_hold(1)
 
@@ -290,7 +288,7 @@ class Controller():
                             "aileron": int(sum(recorder.aileronRecord[-rango:]) / rango),
                             "correccion_gravedad": 0,
                             "elevator": int(sum(recorder.elevatorRecord[-rango:]) / rango),
-                            "rudder": int(sum(recorder.rudderRecord[-rango:]) / rango),
+                            "rudder": 1500,     ## Probando
                             "throttle": int(sum(recorder.throttleRecord[-rango:]) / rango)
                         }
                         configurator.modify_bias(bias, "media_todos_ejes.json")
@@ -1671,8 +1669,7 @@ class Controller():
         aileronCommand = round(rfs.clamp(aileronCommand, 1000, 2000))
         elevatorCommand = round(rfs.clamp(elevatorCommand, gb.elevator_middle - gb.clamp_offset, gb.elevator_middle + gb.clamp_offset))
         elevatorCommand = round(rfs.clamp(elevatorCommand, 1000, 2000))
-        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset, gb.rudder_middle + gb.clamp_offset))
-        rudderCommand = round(rfs.clamp(rudderCommand, 1000, 2000))
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset/3, gb.rudder_middle + gb.clamp_offset/3))
 
 
         # print(componente_ZP, componente_ZI, componente_ZD)

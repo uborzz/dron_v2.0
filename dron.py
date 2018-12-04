@@ -29,7 +29,7 @@ class Dron:
         if not self.simulated:
             self.port = serial.Serial(self.serial_port_name, self.baud_rate, timeout=1)
 
-        self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOVER", "HOLD", "AVANZA", "RETROCEDE"]
+        self.modes_available=["NO_INIT", "CALIB_COLOR", "DESPEGUE", "HOLD"]
         self.mode = "NO_INIT"
         self.motor_on = False
         self.drone_properties = "drone.config"
@@ -116,7 +116,7 @@ class Dron:
             self.valor_maniobras = sum(l) / len(l) - 50
         elif modo == "AVANZA":
             l = recorder.elevatorRecord[-60:]
-            self.valor_maniobras = sum(l) / len(l) + 60
+            self.valor_maniobras = sum(l) / len(l) + 30
         elif modo == "APUNTA":
             gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
             configurator.config_target(a=gb.angleTarget)
@@ -203,7 +203,6 @@ class Dron:
         res = command + "\n"
         self.write(res)
 
-
     def set_command(self, command):
         self.last_command_received = command
 
@@ -218,6 +217,12 @@ class Dron:
         self.prueba_arduino_envios += 1
         # ts = time.time()
         # print(ts)
+
+    def read(self, value):
+        if not self.simulated:
+            return self.port.read(value)
+        else:
+            return("Dron simulado, nada que leer.")
 
     def control(self):
         # if self.motor_on:
