@@ -9,6 +9,7 @@ from rady_functions import Recorder
 
 configurator = Configurator()
 recorder = Recorder()
+import rady_functions as rfs
 
 class Dron:
     """
@@ -104,14 +105,21 @@ class Dron:
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
         elif modo == "HOLD":
-            gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
-            configurator.config_target(a=gb.head)
+            if self.modo_previo == "DESPEGUE":
+                gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
+                configurator.config_target(a=gb.head)
+            elif self.modo_previo == "AVANZA":
+                gb.xTarget, gb.yTarget, gb.angleTarget = gb.path_x, gb.path_y, gb.head
+                configurator.config_target(a=gb.head)
         elif modo == "RETROCEDE":
             l = recorder.elevatorRecord[-60:]
             self.valor_maniobras = sum(l) / len(l) - 50
         elif modo == "AVANZA":
             l = recorder.elevatorRecord[-60:]
             self.valor_maniobras = sum(l) / len(l) + 60
+        elif modo == "APUNTA":
+            gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
+            configurator.config_target(a=gb.angleTarget)
         # elif modo == "HOLD":
         #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
         #     configurator.config_target(z=gb.z, a=gb.head)
