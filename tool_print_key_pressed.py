@@ -21,19 +21,23 @@ foto = False
 
 cv2.namedWindow("principal")
 
-
 while True:
     # grab the frame from the threaded video +
-    frame = vs.read()
+    frame, _= vs.read()
     if punto_click:
         cv2.circle(frame, punto_click, 5, (255, 255, 255))
 
     cv2.imshow("principal", frame)
     k = cv2.waitKey(1)
+    j = cv2.waitKeyEx(1)
     if k != -1:
-        print("Code of key pressed:", k)
+        print("waitkey captured:", k)
         if k == 27 or k == ord('q'):
             break
+    if j != -1:
+        print("waitkeyEx code:", j)
+
+
 
 
 cv2.destroyAllWindows()

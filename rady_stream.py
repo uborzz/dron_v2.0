@@ -110,11 +110,11 @@ class Stream:
 
     def SO_inc_value(self):
         if platform.system() == "Linux":
-            return 0.03
+            return 0.05
         elif platform.system() == "Windows":
-            return 1
+            return 2
         else:
-            return 0.3
+            return 0.5
 
 
     def set_fps(self, fps):
