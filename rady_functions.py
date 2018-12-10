@@ -403,13 +403,43 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         return True
     elif k == ord('w'):
         camera.menu_config()
-    elif k == ord('a'):
-        dron.panic()
-        controller.windup()  # chapuza windup
-        dron.set_mode("NO_INIT")
-        dron.flag_vuelo = False
-    elif k == ord('¡'):
-        localizador.toggle_debug_images()
+    elif k == ord('c'):
+        dron.calibrate2()
+    elif k == ord('x'):
+        dron.calibrate()
+    elif k == ord('b'):
+        dron.abajoizquierda()
+    elif k == ord('m'):
+        dron.abajoderecha()
+    elif k == ord('n'):
+        dron.neutro()
+    elif k == ord('z'):
+        # midron.send_command("1500,1700,1470,1500,0,0,0,1")
+        dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
+        time.sleep(0.05)
+        lectura = dron.read(1000)
+        print("Lectura INIT enviado: ", lectura)
+        # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+        # dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
+        # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
+        time.sleep(4)
+        lectura = dron.read(1000)
+        print("Saliendo INIT: ", lectura)
+        # time.sleep(1)
+        # elif k == ord('x'):
+        #     midron.send_command("1500,1700,1470,1500,2000")
+        #     time.sleep(0.2)
+        #     midron.send_command("1500,1700,2000,1500")
+        #     time.sleep(0.5)
+        #     midron.send_command("1500,1700,1470,1500")
+        #     # time.sleep(1)
+        # elif k == ord('a'):
+        #     midron.send_command("1500,1600,1470,1500")
+        #     # time.sleep(1)
+
+    elif k == ord('j'):
+        dron.restart()
+
     elif k == ord('.'):
         dron.change_mode()
     elif k == ord('-'):
@@ -417,8 +447,83 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     elif k == ord('+'):
         gb.info = not gb.info
 
+    elif k == ord('¡'):
+        localizador.toggle_debug_images()
+
+        # provisional
+    elif k == ord('ç'):
+        gb.disable_all_kalmans = not gb.disable_all_kalmans
+    elif k == ord('ñ'):
+        gb.solo_buscar_en_cercanias = not gb.solo_buscar_en_cercanias
+
+
+    # extras
+    elif k==ord('1'):   # MODO HACER VOLTERETA
+        dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
+        dron.set_mode("FLIP")
+
+    elif k==ord('2'):   # MODO SALIR Y ENTRAR DE CÁMARA     # TODO afinar.
+        dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
+        dron.set_mode("EXPLORE")
+
+    elif k==ord('3'):   # MODO ATERRIZAJE
+        dron.prepara_modo(timedelta(seconds=4), gb.throttle)
+        dron.set_mode("LAND")
+
+
+    # elif k==ord('4'):   # Activa Modo avanza
+    #     if dron.get_mode() == "RETROCEDE":
+    #         # dron.activar_modo_previo()
+    #         pass
+    #     else:
+    #         dron.set_mode("RETROCEDE")
+    ## RECUPERANDO KEYS
+
+    # elif k==ord('4'):
+    #     dron.set_mode("APUNTA")
+
+    elif k==ord('5'):   # Activa Modo retrocede
+        if dron.get_mode() == "AVANZA":
+            # dron.activar_modo_previo()
+            pass
+        else:
+            dron.set_mode("AVANZA")
+
+    elif k==ord('6'):   # Activa Modo HOLD
+        controller.ignore_derivative_error = True
+        dron.set_mode("HOLD")
+
+    elif k==ord('7'):
+        configurator.load_config_file("media_todos_ejes.json")
+        controller.windup()  # chapuza windup
+        rango = 60
+        bias = {
+            "aileron": int(sum(recorder.aileronRecord[-rango:])/rango),
+            "correccion_gravedad": 0,
+            "elevator": int(sum(recorder.elevatorRecord[-rango:])/rango),
+            "rudder": int(sum(recorder.rudderRecord[-rango:])/rango),
+            "throttle": int(sum(recorder.throttleRecord[-rango:])/rango)
+        }
+        configurator.modify_bias(bias, "media_todos_ejes.json")
+        print("prov. Cambiando config PID a media_todos_ejes.json")
+
+    elif k==ord('8'):
+        configurator.load_config_file("media_bias_z.json")
+        controller.windup()  # chapuza windup
+        bias = {
+            "throttle": int(sum(recorder.throttleRecord[-60:])/60)
+        }
+        configurator.modify_bias(bias, "media_bias_z.json")
+        print("prov. Cambiando config PID a media_bias_z.json")
+
+    elif k==ord('9'):
+        controller.set_mode("NOVIEMBRE")
+        configurator.load_config_file("noviembre.json")
+        print("prov. Cambiando config PID a noviembre.json")
+
+
     # PROVISIONAL - Funciones teclas si Modo del dron "CALIB_COLOR".
-    if dron.mode == "CALIB_COLOR":
+    elif dron.mode == "CALIB_COLOR":
         ## PROVISIONAL - TODO Pasar a sliders
         if k == ord('u'):
             camera.sube_contraste()
@@ -456,166 +561,11 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
         elif k == ord('s'):
             camera.read_camera_params()
 
-    elif dron.mode == "MANUAL":
-        val = 40
-        if k == 2424832:
-            #izquierda
-            gb.manual_ail -= val
-        elif k == 2555904:
-            #derecha
-            gb.manual_ail += val
-        elif k == 2490368:
-            #arriba
-            gb.manual_ele += val
-        elif k == 2621440:
-            #abajo
-            gb.manual_ele -= val
-        elif k == 2162688:
-            #RePag
-            gb.manual_thr += val
-        elif k == 2228224:
-            #AvPag
-            gb.manual_thr -= val
-
-    else:
-        if k == ord('c'):
-            dron.calibrate2()
-        elif k == ord('x'):
-            dron.calibrate()
-        elif k == ord('b'):
-            dron.abajoizquierda()
-        elif k == ord('m'):
-            dron.abajoderecha()
-        elif k == ord('n'):
-            dron.neutro()
-        elif k == ord('z'):
-            # midron.send_command("1500,1700,1470,1500,0,0,0,1")
-            dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
-            time.sleep(0.05)
-            lectura = dron.read(1000)
-            print("Lectura INIT enviado: ", lectura)
-            # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-            # dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
-            # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
-            time.sleep(4)
-            lectura = dron.read(1000)
-            print("Saliendo INIT: ", lectura)
-            # time.sleep(1)
-            # elif k == ord('x'):
-            #     midron.send_command("1500,1700,1470,1500,2000")
-            #     time.sleep(0.2)
-            #     midron.send_command("1500,1700,2000,1500")
-            #     time.sleep(0.5)
-            #     midron.send_command("1500,1700,1470,1500")
-            #     # time.sleep(1)
-            # elif k == ord('a'):
-            #     midron.send_command("1500,1600,1470,1500")
-            #     # time.sleep(1)
-
-        elif k == ord('j'):
-            dron.restart()
-
-            # provisional
-        elif k == ord('ç'):
-            gb.disable_all_kalmans = not gb.disable_all_kalmans
-        elif k == ord('ñ'):
-            gb.solo_buscar_en_cercanias = not gb.solo_buscar_en_cercanias
-
-
-        # extras
-        elif k==ord('1'):   # MODO HACER VOLTERETA
-            dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
-            dron.set_mode("FLIP")
-
-        elif k==ord('2'):   # MODO SALIR Y ENTRAR DE CÁMARA     # TODO afinar.
-            dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
-            dron.set_mode("EXPLORE")
-
-        elif k==ord('3'):   # MODO ATERRIZAJE
-            dron.prepara_modo(timedelta(seconds=4), gb.throttle)
-            dron.set_mode("LAND")
-
-
-        # elif k==ord('4'):   # Activa Modo avanza
-        #     if dron.get_mode() == "RETROCEDE":
-        #         # dron.activar_modo_previo()
-        #         pass
-        #     else:
-        #         dron.set_mode("RETROCEDE")
-        ## RECUPERANDO KEYS
-
-        # elif k==ord('4'):
-        #     dron.set_mode("APUNTA")
-
-
-        #
-        # elif k==ord('5'):   # Activa Modo retrocede
-        #     if dron.get_mode() == "AVANZA":
-        #         # dron.activar_modo_previo()
-        #         pass
-        #     else:
-        #         dron.set_mode("AVANZA")
-        #
-        # elif k==ord('6'):   # Activa Modo HOLD
-        #     controller.ignore_derivative_error = True
-        #     dron.set_mode("HOLD")
-
-        elif k==ord('5'):
-            dron.set_mode("MANUAL")
-            dron.flag_vuelo = True
-
-        elif k==ord('6'):
-            dron.set_mode("GOMAESPUMA")
-
-        elif k==ord('7'):
-            configurator.load_config_file("media_todos_ejes.json")
-            controller.windup()  # chapuza windup
-            rango = 60
-            bias = {
-                "aileron": int(sum(recorder.aileronRecord[-rango:])/rango),
-                "correccion_gravedad": 0,
-                "elevator": int(sum(recorder.elevatorRecord[-rango:])/rango),
-                "rudder": int(sum(recorder.rudderRecord[-rango:])/rango),
-                "throttle": int(sum(recorder.throttleRecord[-rango:])/rango)
-            }
-            configurator.modify_bias(bias, "media_todos_ejes.json")
-            print("prov. Cambiando config PID a media_todos_ejes.json")
-
-
-        elif k==ord('8'):
-            configurator.load_config_file("media_todos_ejes.json")
-            rango = 60
-            bias = {
-                "aileron": int(sum(recorder.aileronRecord[-rango:])/rango),
-                "correccion_gravedad": 0,
-                "elevator": int(sum(recorder.elevatorRecord[-rango:])/rango),
-                "rudder": int(sum(recorder.rudderRecord[-rango:])/rango),
-                "throttle": int(sum(recorder.throttleRecord[-rango:])/rango)
-            }
-            configurator.modify_bias(bias, "media_todos_ejes.json")
-            print("prov. Cambiando config PID a media_todos_ejes.json")
-
-        elif k==ord('9'):
-            configurator.load_config_file("media_bias_z.json")
-            controller.windup()  # chapuza windup
-            bias = {
-                "throttle": int(sum(recorder.throttleRecord[-60:])/60)
-            }
-            configurator.modify_bias(bias, "media_bias_z.json")
-            print("prov. Cambiando config PID a media_bias_z.json")
-        #
-        # elif k==ord('9'):
-        #     controller.set_mode("NOVIEMBRE")
-        #     configurator.load_config_file("noviembre.json")
-        #     print("prov. Cambiando config PID a noviembre.json")
-
-
-
-
 
     # Selector config file para el PID. - Provisional funciona solo si el modo del dron no es CALIB_COLOR
     # Meter rotacion y salva/carga configs PID:
-        elif k == ord('u'):   # SALVA CONFIG EN CONFIG ACTUAL
+    else:
+        if k == ord('u'):   # SALVA CONFIG EN CONFIG ACTUAL
             configurator.save_to_config_activa()
         elif k == ord('i'): # SALVA CONFIG EN FICHERO NUEVO
             configurator.create_new_config_file()
@@ -638,6 +588,11 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
                 video.turn_on()
                 print("Capturing video...")
 
+        elif k == ord('a'):
+            dron.panic()
+            controller.windup()  # chapuza windup
+            dron.set_mode("NO_INIT")
+            dron.flag_vuelo = False
         elif k == ord('s'):
             totalenvios = dron.prueba_arduino_envios
             dron.panic()
