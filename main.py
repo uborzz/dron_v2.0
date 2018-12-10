@@ -145,7 +145,7 @@ def main():
         # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
         # cv2.imshow('image', frame)
 
-        k = cv2.waitKey(1)
+        k = cv2.waitKeyEx(1)
         if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=gb.frame):
             break
 
@@ -157,23 +157,24 @@ def main():
         # print("Traza Aux:", str(gb.traza_aux))
         # gb.traza_aux += 1
 
-        gb.x, gb.y, gb.z, gb.head = localizacion
-        if datetime.now() - gb.timerStart <= timedelta(seconds=2):
-            continue
 
+        if True: #estado_localizador == False:
+            gb.x, gb.y, gb.z, gb.head = localizacion
+            if datetime.now() - gb.timerStart <= timedelta(seconds=2):
+                continue
 
-        # Comandos de control:
-        controller.run_meta_selector(windup=False)  # todo: dar una vuelta a esto.
-        pack = controller.control()
+            # Comandos de control:
+            controller.run_meta_selector(windup=False)  # todo: dar una vuelta a esto.
+            pack = controller.control()
 
-        # Envío comandos a Arduino-Dron
-        if pack: # and estado_localizador:
-            (gb.throttle, gb.aileron, gb.elevator, gb.rudder) = pack
-            if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(gb.throttle, gb.aileron, gb.elevator, gb.rudder))
-            command = "%i,%i,%i,%i" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
-            if midron.flag_vuelo: midron.send_command(command)
-        else:
-            if gb.info: print("no init control...")
+            # Envío comandos a Arduino-Dron
+            if pack: # and estado_localizador:
+                (gb.throttle, gb.aileron, gb.elevator, gb.rudder) = pack
+                if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(gb.throttle, gb.aileron, gb.elevator, gb.rudder))
+                command = "%i,%i,%i,%i" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+                if midron.flag_vuelo: midron.send_command(command)
+            else:
+                if gb.info: print("no init control...")
 
 
     #PINTA MIERDA EN PANTALLA
