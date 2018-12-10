@@ -102,10 +102,14 @@ class Localizador:
         # self.K_z = kf.KalmanFilter(1, 1)
 
         self.head = 0
-        self.previous_heads = rfs.rady_ring(5)
+        self.previous_heads = rfs.rady_ring(3)
         # self.K_head = kfc.kalman_circular(0.5, 30) # prueba filtro
         self.K_head = kfc.kalman_circular(4, 6)
 
+
+        #filtro ruido
+        self.angulo_filtra_ruido_veces = 0
+        self.angulo_filtra_ruido_max_veces_consecutivas = 2
 
         # self.coronaNaranja = Corona(2)
         pass
@@ -126,6 +130,13 @@ class Localizador:
         self.debug = valor
         self.circuloColor.debug = valor
         self.coronaNaranja.debug = valor
+        if not valor:
+            cv2.destroyWindow("mascara")
+            cv2.destroyWindow("filtrado")
+            cv2.destroyWindow("mascara1")
+            cv2.destroyWindow("mascara2")
+            cv2.destroyWindow("circulo_dilation")
+            cv2.destroyWindow("circulo focalizada externa")
 
     def toggle_debug_images(self):
         valor = not self.debug
@@ -182,17 +193,27 @@ class Localizador:
         if self.debug: print("circuloLeido: ", self.circuloColor.x, self.circuloColor.y)
 
 
+        ## 2018/12/10
+        ## PROBANDO ANTES DEL FILTRO DE KALMAN.
+        head_mean = self.previous_heads.meanangles()
+        if abs(head - head_mean) >= 55 and self.angulo_filtra_ruido_veces < self.angulo_filtra_ruido_max_veces_consecutivas:
+            head = self.previous_heads.get_last() # No acaba de molar. La media tampoco.
+            self.angulo_filtra_ruido_veces += 1
+            # status = False
+        else:
+            self.angulo_filtra_ruido_veces = 0
+
         # filtrar kalman
         if not gb.disable_all_kalmans and gb.kalman_angle:
             if self.debug: print("Antes kalman circular:", head)
             head = self.K_head.predict_and_correct(head)
             if self.debug: print("Despues kalman circular:", head)
 
-        ## 2018/12/04
-        ## excluir medida? hacer esta historia general??:
-        head_mean = self.previous_heads.meanangles()
-        if abs(head - head_mean) >= 50:
-            head = rfs.meanangle([head, head_mean])  # en cierto modo le damos peso a la media anterior y anadimos el nuevo valor.
+        # ## 2018/12/04
+        # ## excluir medida? hacer esta historia general??:
+        # head_mean = self.previous_heads.meanangles()
+        # if abs(head - head_mean) >= 50:
+        #     head = rfs.meanangle([head, head_mean])  # en cierto modo le damos peso a la media anterior y anadimos el nuevo valor.
 
         self.previous_heads.append(head)
         self.head = head
@@ -360,13 +381,20 @@ class Circulo:
         x = self.x
         y = self.y
 
-        keypoints = keypoints[0:1]
+        keypoints = keypoints[0:5]
         if keypoints:
             self.located = True
             self.last_located = 0
-            self.fames_sin_ver_circulo = 0
-            x = int(keypoints[0].pt[0])
-            y = int(keypoints[0].pt[1])
+            # self.fames_sin_ver_circulo = 0
+            # x = int(keypoints[0].pt[0])
+            # y = int(keypoints[0].pt[1])
+
+            # x, y = self.punto_mas_cercano(keypoints)
+            kps = [(math.sqrt((kp.pt[0]-x)**2 + (kp.pt[1]-y)**2), index) for index, kp in enumerate(keypoints)]
+            index_kp_cercano = sorted(kps)[0][1]
+            x = int(keypoints[index_kp_cercano].pt[0])
+            y = int(keypoints[index_kp_cercano].pt[1])
+
         else:
             # if self.last_located >= self.max_trys_location:
             if self.last_located >= self.max_trys_location:
