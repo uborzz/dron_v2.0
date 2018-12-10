@@ -120,7 +120,21 @@ class Dron:
         elif modo == "APUNTA":
             gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
             configurator.config_target(a=gb.angleTarget)
-        # elif modo == "HOLD":
+        elif modo == "MANUAL":
+            try:
+                l = recorder.throttleRecord[-60:]
+                gb.manual_thr  = sum(l) / len(l)
+                l = recorder.elevatorRecord[-60:]
+                gb.manual_ele = sum(l) / len(l)
+                l = recorder.aileronRecord[-60:]
+                gb.manual_ail = sum(l) / len(l)
+            except:
+                gb.manual_thr, gb.manual_ele, gb.manual_ail = 1500, 1500, 1500
+        elif modo == "GOMAESPUMA":
+            gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
+            configurator.config_target(a=gb.head)
+
+                # elif modo == "HOLD":
         #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
         #     configurator.config_target(z=gb.z, a=gb.head)
 
