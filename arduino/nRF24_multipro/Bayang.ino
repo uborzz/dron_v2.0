@@ -22,7 +22,8 @@ static uint8_t Bayang_rf_chan;
 static uint8_t Bayang_rf_channels[BAYANG_RF_NUM_CHANNELS] = {0,};
 // static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH];
 // PROBANDO
-static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'u','b','o','r','Z'};
+//static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'u','b','o','r','Z'}; // nano
+static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'k','a','L','o','n'};  // bt-zum
 
 enum{
     // flags going to packet[2]

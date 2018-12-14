@@ -109,109 +109,117 @@ def main():
     micros_para_procesar = timedelta(microseconds=int(1000000 / gb.fps))
 
 
-    while True:
+    try: # main loop
+        while True:
 
-        toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
-        if not toca_procesar:
-            continue
-        timer_fps = datetime.now()
-
-        timer_tick_count = cv2.getTickCount()
-        t_loop_start = datetime.now()
-
-        if gb.refresca_params_flag: configurator.panels.refresca_params()
-
-
-        # TODO AISLAR ESTO
-        gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
-        gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
-        controller.control_pidlib_target(z = gb.zTarget)
-        #############################
-
-        # _, frame = cam.read() # Con videoCapture de openCv a pelo
-        gb.frame, gb.frame_time = cam.read()  # Con mi STREAM de video
-
-        # Espejo/rotate si/no?
-        if rotate:
-            gb.frame = cv2.flip(gb.frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
-
-        # Camara calibrada? Obtenemos la transformacion
-        if undistort:
-            undistorted = cv2.remap(gb.frame, map1, map2, cv2.INTER_LINEAR)
-            x, y, w, h = roi
-            gb.frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
-
-        # SCALE Imagen
-        # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
-        # cv2.imshow('image', frame)
-
-        k = cv2.waitKeyEx(1)
-        if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=gb.frame):
-            break
-
-        # Localizador
-        localizacion, estado_localizador = locator.posicion_dron(gb.frame)  # asignar a clase dron su localizador seria lo suyo.
-        # Coger var que indike OK - NOK, o grado de OK del dron.
-
-        # # valor auxiliar para relacionar log programa con imagen video.
-        # print("Traza Aux:", str(gb.traza_aux))
-        # gb.traza_aux += 1
-
-
-        if True: #estado_localizador == False:
-            gb.x, gb.y, gb.z, gb.head = localizacion
-            if datetime.now() - gb.timerStart <= timedelta(seconds=2):
+            toca_procesar = datetime.now() - timer_fps >= micros_para_procesar
+            if not toca_procesar:
                 continue
+            timer_fps = datetime.now()
 
-            # Comandos de control:
-            controller.run_meta_selector(windup=False)  # todo: dar una vuelta a esto.
-            pack = controller.control()
+            timer_tick_count = cv2.getTickCount()
+            t_loop_start = datetime.now()
 
-            # Envío comandos a Arduino-Dron
-            if pack: # and estado_localizador:
-                (gb.throttle, gb.aileron, gb.elevator, gb.rudder) = pack
-                if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(gb.throttle, gb.aileron, gb.elevator, gb.rudder))
-                command = "%i,%i,%i,%i" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
-                if midron.flag_vuelo: midron.send_command(command)
-            else:
-                if gb.info: print("no init control...")
+            if gb.refresca_params_flag: configurator.panels.refresca_params()
 
 
-    #PINTA MIERDA EN PANTALLA
+            # TODO AISLAR ESTO
+            gb.angleTarget = cv2.getTrackbarPos("A Target", "target")
+            gb.zTarget = cv2.getTrackbarPos("Z Target", "target")
+            controller.control_pidlib_target(z = gb.zTarget)
+            #############################
 
-        # fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer_tick_count)
-        ms_frame = (datetime.now() - t_loop_start).microseconds / 1000
-        rfs.pinta_informacion_en_frame(gb.frame, midron, controller, t_frame=ms_frame)
-        cv2.imshow('frame gordo', gb.frame)
+            # _, frame = cam.read() # Con videoCapture de openCv a pelo
+            gb.frame, gb.frame_time = cam.read()  # Con mi STREAM de video
 
-        # rfs.pinta_informacion_en_panel_info(panel, midron, controller)
-        # cv2.imshow('more info', panel)
+            # Espejo/rotate si/no?
+            if rotate:
+                gb.frame = cv2.flip(gb.frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
+
+            # Camara calibrada? Obtenemos la transformacion
+            if undistort:
+                undistorted = cv2.remap(gb.frame, map1, map2, cv2.INTER_LINEAR)
+                x, y, w, h = roi
+                gb.frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
+
+            # SCALE Imagen
+            # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
+            # cv2.imshow('image', frame)
+
+            k = cv2.waitKeyEx(1)
+            if k != -1 and rfs.evalua_key(key_pressed=k, dron=midron, controller=controller, camera=cam, localizador=locator, frame=gb.frame):
+                break
+
+            # Localizador
+            localizacion, estado_localizador = locator.posicion_dron(gb.frame)  # asignar a clase dron su localizador seria lo suyo.
+            # Coger var que indike OK - NOK, o grado de OK del dron.
+
+            # # valor auxiliar para relacionar log programa con imagen video.
+            # print("Traza Aux:", str(gb.traza_aux))
+            # gb.traza_aux += 1
 
 
-    # SALVA VIDEO
+            if True: #estado_localizador == False:
+                gb.x, gb.y, gb.z, gb.head = localizacion
+                if datetime.now() - gb.timerStart <= timedelta(seconds=2):
+                    continue
 
-        if video.is_enabled():
-            video.write(gb.frame)
+                # Comandos de control:
+                controller.run_meta_selector(windup=False)  # todo: dar una vuelta a esto.
+                pack = controller.control()
 
-    cv2.destroyAllWindows()
+                # Envío comandos a Arduino-Dron
+                if pack: # and estado_localizador:
+                    (gb.throttle, gb.aileron, gb.elevator, gb.rudder) = pack
+                    if gb.info: print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(gb.throttle, gb.aileron, gb.elevator, gb.rudder))
+                    command = "%i,%i,%i,%i" % (gb.throttle, gb.aileron, gb.elevator, gb.rudder)
+                    if midron.flag_vuelo: midron.send_command(command)
+                    else: midron.send_command("1000,1500,1500,1500")
+                else:
+                    if gb.info: print("no init control...")
 
-    recorder.dump_to_file()
 
-    if configurator.salvar_al_salir:
-        configurator.save_config_file(gb.config_activa)
+        #PINTA MIERDA EN PANTALLA
 
-        # Provisional...
-        locator.save_values_to_file()
+            try:
+                rfs.pinta_en_posicion(["Finales", "T"+str(gb.throttle), "A"+str(gb.aileron), "E"+str(gb.elevator), "R"+str(gb.rudder)],(300, 15))
+            except:
+                pass # no hay datos, no pinta nada
 
-    if video.is_initialized():
-        video.release()
-        print("If activated, video for this session can be found in...", video.get_filename())
+            # fps_display = cv2.getTickFrequency() / (cv2.getTickCount() - timer_tick_count)
+            ms_frame = (datetime.now() - t_loop_start).microseconds / 1000
+            rfs.pinta_informacion_en_frame(gb.frame, midron, controller, t_frame=ms_frame)
+            cv2.imshow('frame gordo', gb.frame)
 
-    if not cfg.ignore_arduino:
-        midron.panic()
-        midron.close()
+            # rfs.pinta_informacion_en_panel_info(panel, midron, controller)
+            # cv2.imshow('more info', panel)
 
-    print("See ya! =)")
+
+        # SALVA VIDEO
+
+            if video.is_enabled():
+                video.write(gb.frame)
+
+    finally:
+        cv2.destroyAllWindows()
+
+        recorder.dump_to_file()
+
+        if configurator.salvar_al_salir:
+            configurator.save_config_file(gb.config_activa)
+
+            # Provisional...
+            locator.save_values_to_file()
+
+        if video.is_initialized():
+            video.release()
+            print("If activated, video for this session can be found in...", video.get_filename())
+
+        if not cfg.ignore_arduino:
+            midron.panic()
+            midron.close()
+
+        print("See ya! =)")
 
 
 if __name__ == '__main__':

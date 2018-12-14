@@ -20,6 +20,9 @@ import math
 from datetime import datetime, timedelta
 from rady_configurator import Configurator
 from simple_pid import PID
+from kalman_jc import KalmanFilter as kalman
+from kalman_circular import kalman_circular
+import cv2
 
 """
 https://github.com/m-lundberg/simple-pid
@@ -72,7 +75,7 @@ class Controller():
         self.autoadjust = datetime.now()
         self.necesario_windup = False
         self.veces_autoajuste = 0
-        self.max_veces_autoajuste = 2
+        self.max_veces_autoajuste = 5
 
 
         # MUY PROVISIONAL, PRUEBAS
@@ -83,6 +86,31 @@ class Controller():
         #... en la misma linea, prov. pruebas rapida para prueba funcionamiento.
         self.flag_esperando = False
 
+        cv2.namedWindow('gomaespuma')
+        cv2.resizeWindow('gomaespuma', 300, 120)
+        cv2.moveWindow('gomaespuma', 200+640+400, 100+200)
+        cv2.createTrackbar('V1*100', 'gomaespuma', 6, 1000, self.prov_mod_v1)
+        cv2.createTrackbar('V2', 'gomaespuma', 600, 1000, self.prov_mod_v2)
+
+        self.out_k_thr = kalman(50, 50)
+        self.out_k_ail = kalman(50, 50)
+        self.out_k_ele = kalman(50, 50)
+        self.out_k_rud = kalman(50, 50)
+
+    def prov_mod_v1(self, value):
+        prov_v1 = value/100
+        self.out_k_thr.change_q(prov_v1)
+        self.out_k_ail.change_q(prov_v1)
+        self.out_k_ele.change_q(prov_v1)
+        self.out_k_rud.change_q(prov_v1)
+
+    def prov_mod_v2(self, value):
+        if value:
+            prov_v2 = value
+            self.out_k_thr.change_r(prov_v2)
+            self.out_k_ail.change_r(prov_v2)
+            self.out_k_ele.change_r(prov_v2)
+            self.out_k_rud.change_r(prov_v2)
 
     def change_mode(self):
         index = self.modes_available.index(self.mode) + 1
@@ -114,7 +142,9 @@ class Controller():
                 # return self.control_basico_factorsolointegral()
                 # return self.control_basico()
             elif self.mode == "NOVIEMBRE":
-                return self.control_noviembre()
+                # 2018/12/11 comentado el cambio noviembre->despegar
+                # return self.control_noviembre()
+                return self.control_despegar()
             elif self.mode == "BASICO_DOBLE":
                 return self.control_basico_piddoble()
             elif self.mode == "HOVER_BIAS":
@@ -165,6 +195,12 @@ class Controller():
             return self.control_retrocede()
         elif self.dron.mode == "APUNTA":
             return self.control_noviembre()
+        elif self.dron.mode == "MANUAL":
+            return self.control_manual()
+        elif self.dron.mode == "GOMAESPUMA":
+            return self.control_noviembre_gomaespuma()
+        elif self.dron.mode == "MOLINILLO":
+            return self.control_molinillo()
         # elif self.dron.mode == "NO_INIT":
         #     if self.mode == "CALIB_BIAS":
         #         return self.control_calib_bias()
@@ -197,12 +233,12 @@ class Controller():
         print("path point target is the new target:", str(gb.xTarget), str(gb.yTarget))
 
 
-    def angulo_alcanzado(self):
+    def angulo_alcanzado(self, offset=5):
         a_target = gb.angleTarget
         a_measured = gb.head
         if a_target >= 180: a_target -= 360
         if a_measured >= 180: a_measured -= 360
-        if abs(a_target - a_measured) <= 5:
+        if abs(a_target - a_measured) <= offset:
             return True
         return False
 
@@ -246,10 +282,11 @@ class Controller():
         #         self.dron.set_mode("HOLD")
 
         if self.dron.mode != "NO_INIT":
-            if self.dron.mode == "DESPEGUE":
-                if sum(recorder.zRecord[-6:])/6 >= (gb.zTarget-5):
-                    configurator.load_config_file("noviembre.json")
-                    self.swap_to_mode_hold(2)
+            # 2018/12/14 -> Que lo gestione solamente control_despegar
+            # if self.dron.mode == "DESPEGUE":
+            #     if sum(recorder.zRecord[-6:])/6 >= (gb.zTarget-5):
+            #         configurator.load_config_file("autoajuste_5.json")
+            #         self.swap_to_mode_hold(3)
 
             if self.dron.mode == "APUNTA":
                 gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
@@ -257,31 +294,35 @@ class Controller():
                     rfs.pinta_circulo_target(4, macizo=True, color="verde")
                 else:
                     rfs.pinta_circulo_target(4, macizo=True, color="rojo")
-                if self.angulo_alcanzado() and not self.get_flag_esperando():
+                if self.angulo_alcanzado(offset=8) and not self.get_flag_esperando():
                     secs_espera = 2
                     print("Apuntando hacia punto objetivo, esperando " + str(secs_espera) + " segundos.")
                     self.inicia_espera(secs_espera)
                 elif self.get_flag_esperando() and self.t_espera_vencido():
+                    self.set_path_target_as_target()
                     self.dron.set_mode("AVANZA")
                     self.reset_espera()
 
-            elif self.dron.mode == "AVANZA":
+            if self.dron.mode == "AVANZA":
                 # si el dron esta en punto cercano al target: cambia amodo hold con swap_to_mode_hold
                 gb.angleTarget = rfs.calcula_angulo_en_punto(gb.path_x, gb.path_y, gb.x, gb.y)
-                if rfs.evalua_llegada_meta(55): # evalua_llegada_meta ya pinta circulo objetivo
-                    self.set_path_target_as_target()
-                    self.swap_to_mode_hold(1)
+                if rfs.evalua_llegada_meta(65): # evalua_llegada_meta ya pinta circulo objetivo
+                    # self.set_path_target_as_target()
+                    self.swap_to_mode_hold(2)
 
             if self.dron.mode == "HOLD":
-                if self.veces_autoajuste < self.max_veces_autoajuste:
+                veces_restantes = self.max_veces_autoajuste - self.veces_autoajuste
+                if veces_restantes:
                     tiempo_desde_ultimo_ajuste = datetime.now() - self.autoadjust
                     if tiempo_desde_ultimo_ajuste >= timedelta(seconds=4):
                         if self.necesario_windup:
+                            print("WindUp!")
                             self.necesario_windup = False
                             self.windup()
                         self.veces_autoajuste += 1
-                        print("ajustando todos ejes a la vez...")
-                        configurator.load_config_file("media_todos_ejes.json")
+                        fichero = "autoajuste_{}.json".format(str(veces_restantes))
+                        print("ajustando todos BIASES sobre fichero de partida:", fichero)
+                        configurator.load_config_file(fichero)
                         # self.windup()  # chapuza windup
                         rango = 60
                         bias = {
@@ -291,13 +332,13 @@ class Controller():
                             "rudder": 1500,     ## Probando
                             "throttle": int(sum(recorder.throttleRecord[-rango:]) / rango)
                         }
-                        configurator.modify_bias(bias, "media_todos_ejes.json")
+                        configurator.modify_bias(bias, fichero)
                         self.autoadjust = datetime.now()
 
             else:
                 ## Provisionalmente esto no estará funcionando - 2018/12/03
                 try:
-                    if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE")):
+                    if ((gb.z >= 60) and (self.mode == "BASICO" or self.mode == "BASICO_CLAMP_THROTTLE") and (self.dron.mode != "CALIB_COLOR")):
                         self.consecutive_frames_out_of_limits += 1
                         if not self.forcing_down and self.consecutive_frames_out_of_limits >= 3:
                             print("FORCING DRON: A BAJAR!!!")
@@ -949,8 +990,8 @@ class Controller():
         if tn - self.dron.t_start >= self.dron.t_duracion or zDrone <= 10:
             self.dron.set_mode("NO_INIT")
             throttleCommand = self.dron.valor_maniobras
-            self.dron.panic()
             self.dron.flag_vuelo = False
+            self.dron.panic()
         else:
             """
             vx será el valor del throttle
@@ -1637,6 +1678,7 @@ class Controller():
         angleCommand = gb.KPangle * self.angleError + gb.KIangle * self.angleErrorI + gb.KDangle * angleErrorD
 
 
+
         ############################
         #     Z
         componente_ZP = gb.KPz * self.zError
@@ -1669,7 +1711,7 @@ class Controller():
         aileronCommand = round(rfs.clamp(aileronCommand, 1000, 2000))
         elevatorCommand = round(rfs.clamp(elevatorCommand, gb.elevator_middle - gb.clamp_offset, gb.elevator_middle + gb.clamp_offset))
         elevatorCommand = round(rfs.clamp(elevatorCommand, 1000, 2000))
-        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset/3, gb.rudder_middle + gb.clamp_offset/3))
+        rudderCommand = round(rfs.clamp(rudderCommand, gb.rudder_middle - gb.clamp_offset/4, gb.rudder_middle + gb.clamp_offset/4))
 
 
         # print(componente_ZP, componente_ZI, componente_ZD)
@@ -1701,3 +1743,80 @@ class Controller():
         elevatorCommand = self.dron.valor_maniobras
         return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
+    def control_manual(self):
+        return(gb.manual_thr, gb.manual_ail, gb.manual_ele, 1500)
+
+    def control_noviembre_gomaespuma(self):
+        (t, a, e, r) = self.control_noviembre()
+        thr = self.out_k_thr.predict_and_correct(t)
+        ail = self.out_k_ail.predict_and_correct(a)
+        ele = self.out_k_ele.predict_and_correct(e)
+
+        # print(componente_ZP, componente_ZI, componente_ZD)
+        rfs.pinta_en_posicion(["Zf^", thr], (450, 180))
+        rfs.pinta_en_posicion(["Xf-", ail], (500, 180))
+        rfs.pinta_en_posicion(["Yf|", ele], (550, 180))
+
+        return(thr, ail, ele, r)
+
+
+
+    def control_despegar(self):
+        zDrone = gb.z
+
+        _, aileronCommand, elevatorCommand, rudderCommand = self.control_noviembre()
+
+        tn = datetime.now()
+        if tn - self.dron.t_start >= self.dron.t_duracion or zDrone >= (gb.zTarget - 7):
+            configurator.load_config_file("autoajuste_5.json")
+            self.windup()
+            self.swap_to_mode_hold(3)
+        else:
+            """
+            vx será el valor del throttle
+                tx - ti   vx - vi
+                ------- = -------
+                tf - ti   vf - vi
+            """
+            tx = tn
+            ti = self.dron.t_start
+            tf = self.dron.t_start + self.dron.t_duracion
+            vi = 1600
+            vf = self.dron.valor_maniobras
+            vx = (tx - ti) / (tf - ti) * (vf - vi) + vi
+            # franja = (self.dron.valor_maniobras - vi) / 4
+            # if vx < (vi + 1*franja):
+            #     vx = vi + 0*franja
+            # elif vx < (vi + 2*franja):
+            #     vx = vi + 1*franja
+            # elif vx < (vi + 3 * franja):
+            #     vx = vi + 2 * franja
+            # elif vx < (vi + 4 * franja):
+            #     vx = vi + 3 * franja
+
+            if self.dron.auxiliar_despegue_fijado == 0:
+                # print("TRAZA1")
+                if gb.z >= 15:
+                    self.dron.auxiliar_despegue_fijado = vx - 50
+                    self.dron.auxiliar_maniobras = self.dron.auxiliar_despegue_fijado
+                    # print("TRAZA2")
+                else:
+                    # print("TRAZA3")
+                    self.dron.auxiliar_maniobras = vx
+            else:
+                # print("TRAZA4")
+                self.dron.auxiliar_maniobras = self.dron.auxiliar_despegue_fijado
+
+        print("VALOR:", self.dron.auxiliar_maniobras)
+        return (int(self.dron.auxiliar_maniobras), aileronCommand, elevatorCommand, rudderCommand)
+
+    def control_molinillo(self):
+        throttleCommand, aileronCommand, elevatorCommand, _ = self.control_noviembre()
+        rudderCommand = self.dron.auxiliar_maniobras
+
+        tn = datetime.now()
+        if tn - self.dron.t_start >= self.dron.t_duracion:
+            configurator.load_config_file("noviembre.json")
+            self.swap_to_mode_hold(3)
+
+        return (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)

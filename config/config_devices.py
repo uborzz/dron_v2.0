@@ -8,6 +8,6 @@ camera_rotation = True          # False             # True
 entorno = "prod"                # prod              # labo
 altura_camara = 185 # cms       # 180               # 205
 
-ignore_arduino = False  # evita serial.open y intentos transf. data
+ignore_arduino = False # evita serial.open y intentos transf. data
 
 pid_config_inicial = "29_14_04.json"

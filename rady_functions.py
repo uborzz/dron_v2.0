@@ -289,13 +289,13 @@ def pinta_informacion_en_panel_info(panel, dron, controller, fps=None, t_frame=N
     cv2.putText(panel, "Dron: " + dron.mode, (10, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("amarillo"),1)
 
 
-def pinta_en_posicion(valores, posicion):
+def pinta_en_posicion(valores, posicion, color="negro"):
     offset = 0
     for item in valores:
         item_str = item
         if isinstance(item_str, int) or isinstance(item_str, float):
             item_str = str(int(item))
-        cv2.putText(gb.frame, item_str, (posicion[0], posicion[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR("negro"), 2)
+        cv2.putText(gb.frame, item_str, (posicion[0], posicion[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tupla_BGR(color), 2)
         offset += 20  # baja 20 pixeles.
 
 
@@ -490,16 +490,21 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.neutro()
         elif k == ord('z'):
             # midron.send_command("1500,1700,1470,1500,0,0,0,1")
+            dron.flag_vuelo = False
             dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
-            time.sleep(0.05)
-            lectura = dron.read(1000)
-            print("Lectura INIT enviado: ", lectura)
+            time.sleep(0.50)
+            dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
+            time.sleep(0.50)
+            dron.send_command("1000,1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,2000")
+            # lectura = dron.read(1000)
+            print("Lectura INIT enviada, esperando 2")
+            # print("Lectura INIT enviado: ", lectura)
             # midron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
             # dron.send_command("1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000")
             # midron.send_command("0,0,0,0,0,0,0,0,0,0,0,0")
-            time.sleep(4)
-            lectura = dron.read(1000)
-            print("Saliendo INIT: ", lectura)
+            time.sleep(2)
+            # lectura = dron.read(1000)
+            # print("Saliendo INIT: ", lectura)
             # time.sleep(1)
             # elif k == ord('x'):
             #     midron.send_command("1500,1700,1470,1500,2000")
@@ -527,13 +532,31 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
             dron.prepara_modo(timedelta(seconds=0.5), gb.aileron)
             dron.set_mode("FLIP")
 
-        elif k==ord('2'):   # MODO SALIR Y ENTRAR DE CÁMARA     # TODO afinar.
-            dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
-            dron.set_mode("EXPLORE")
+        # elif k==ord('2'):   # MODO SALIR Y ENTRAR DE CÁMARA     # TODO afinar.
+        #     dron.prepara_modo(timedelta(seconds=1.8), gb.aileron)
+        #     dron.set_mode("EXPLORE")
+
+        # 2018/12/11 - despegar modo despegue.
+        elif k==ord('2'):
+            dron.prepara_modo(timedelta(seconds=10), 1900)
+            controller.windup()
+            dron.prueba_arduino_envios = 0
+            controller.init_planner()
+            controller.set_mode("NOVIEMBRE")
+            configurator.load_config_file("despegue.json")
+            controller.control_pidlib_init()
+            dron.set_mode("DESPEGUE")
+            dron.flag_vuelo = True
+
 
         elif k==ord('3'):   # MODO ATERRIZAJE
             dron.prepara_modo(timedelta(seconds=4), gb.throttle)
             dron.set_mode("LAND")
+
+
+        elif k==ord('4'):   #
+            dron.prepara_modo(timedelta(seconds=5), 15)
+            dron.set_mode("MOLINILLO")
 
 
         # elif k==ord('4'):   # Activa Modo avanza
@@ -709,7 +732,7 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
 
     else:
         if event == cv2.EVENT_LBUTTONUP:
-            print("Target clicked! -", str(x), str(y))
+            print("Target clicked: Apunta y Go!", str(x), str(y))
 
             # angleTarget = [np.degrees(np.arctan( (x - gb.xTarget[0]) / (y - yTarget[0]) ) ) + 180] # grados
             gb.path_x = x  # pixeles
@@ -725,3 +748,8 @@ def evalua_click(event, x, y, dron, controller, localizador, frame):
             # # controller.control_simple_pid_init()
             # # print("PID de la lib simple_pid seteados valores target.")
             # controller.control_pidlib_target(x=x, y=y)
+
+        elif event == cv2.EVENT_RBUTTONUP:
+            print("Target clicked: Nueva X-Y!", str(x), str(y))
+            gb.xTarget = x  # pixeles
+            gb.yTarget = y  # pixeles

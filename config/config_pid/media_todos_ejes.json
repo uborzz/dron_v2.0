@@ -1,10 +1,10 @@
 {
     "bias": {
-        "aileron": 1505,
+        "aileron": 1543,
         "correccion_gravedad": 0,
-        "elevator": 1462,
-        "rudder": 1481,
-        "throttle": 1652
+        "elevator": 1446,
+        "rudder": 1500,
+        "throttle": 1663
     },
     "pid": {
         "KDangle": 0,

@@ -52,12 +52,15 @@ class Dron:
         self.t_start = datetime.now()
         self.t_duracion = timedelta(seconds=1)
         self.valor_maniobras = 0
+        self.auxiliar_maniobras = 0
+        self.auxiliar_despegue_fijado = 0
         self.modo_previo = None
 
     # def activar(self):
     #     while True:
 
     def restart(self):
+        self.flag_vuelo = False
         if not self.simulated:
             self.port.close()
             time.sleep(0.5)
@@ -104,6 +107,7 @@ class Dron:
         if modo == "DESPEGUE":
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
+            self.auxiliar_despegue_fijado = 0
         elif modo == "HOLD":
             if self.modo_previo == "DESPEGUE":
                 gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
@@ -133,6 +137,9 @@ class Dron:
         elif modo == "GOMAESPUMA":
             gb.xTarget, gb.yTarget, gb.angleTarget = gb.x, gb.y, gb.head
             configurator.config_target(a=gb.head)
+        elif modo == "MOLINILLO":
+            l = recorder.rudderRecord[-25:]
+            self.valor_maniobras = sum(l) / len(l) + self.valor_maniobras
 
                 # elif modo == "HOLD":
         #     gb.xTarget, gb.yTarget, gb.zTarget, gb.angleTarget = gb.x, gb.y, gb.z, gb.head
@@ -247,11 +254,13 @@ class Dron:
         pass
 
     def panic(self):
-        command = "1000,1000,1000,1000"
+        command = "1000,1500,1500,1500"
         self.send_command(command)
+        time.sleep(0.1)
         self.send_command(command)
-        self.send_command(command)
-        self.send_command(command)
+
+        # self.send_command(command)
+        # self.send_command(command)
 
     def close(self):
         self.port.close()

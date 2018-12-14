@@ -23,3 +23,9 @@ class KalmanFilter:
     def predict_and_correct(self, x):
         self.predict()
         return self.correct(x)
+
+    def change_q(self, valor):
+        self.q = valor
+
+    def change_r(self, valor):
+        self.r = valor
