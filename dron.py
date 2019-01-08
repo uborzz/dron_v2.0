@@ -258,6 +258,7 @@ class Dron:
         self.send_command(command)
         time.sleep(0.1)
         self.send_command(command)
+        time.sleep(0.1)
 
         # self.send_command(command)
         # self.send_command(command)

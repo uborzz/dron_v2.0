@@ -23,6 +23,7 @@ from simple_pid import PID
 from kalman_jc import KalmanFilter as kalman
 from kalman_circular import kalman_circular
 import cv2
+from time import sleep
 
 """
 https://github.com/m-lundberg/simple-pid
@@ -992,6 +993,9 @@ class Controller():
             throttleCommand = self.dron.valor_maniobras
             self.dron.flag_vuelo = False
             self.dron.panic()
+            sleep(0.5)
+            self.dron.panic()
+
         else:
             """
             vx será el valor del throttle
@@ -1585,8 +1589,12 @@ class Controller():
         # print("provisional diferencia...", input, tiempo, output)
         return output
 
-
+    # tests rapidos parseo general
     def control_noviembre(self):
+        # return self.control_noviembre_autentico()
+        return self.control_noviembre_autentico()
+
+    def control_noviembre_autentico(self):
         # print("Entrando control_noviembre")
         # cOPIA DEL control basico para pruebas en noviembre, tras 4 o 5 semanas sin tocar y no haber conseguido control OK con el nuevo filtro vision y su retardo.
         # gb.angleTarget = 180
@@ -1747,7 +1755,7 @@ class Controller():
         return(gb.manual_thr, gb.manual_ail, gb.manual_ele, 1500)
 
     def control_noviembre_gomaespuma(self):
-        (t, a, e, r) = self.control_noviembre()
+        (t, a, e, r) = self.control_noviembre_autentico()
         thr = self.out_k_thr.predict_and_correct(t)
         ail = self.out_k_ail.predict_and_correct(a)
         ele = self.out_k_ele.predict_and_correct(e)
@@ -1757,7 +1765,7 @@ class Controller():
         rfs.pinta_en_posicion(["Xf-", ail], (500, 180))
         rfs.pinta_en_posicion(["Yf|", ele], (550, 180))
 
-        return(thr, ail, ele, r)
+        return(t, ail, ele, r)
 
 
 

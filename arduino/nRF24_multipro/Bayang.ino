@@ -22,8 +22,9 @@ static uint8_t Bayang_rf_chan;
 static uint8_t Bayang_rf_channels[BAYANG_RF_NUM_CHANNELS] = {0,};
 // static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH];
 // PROBANDO
-//static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'u','b','o','r','Z'}; // nano
-static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'k','a','L','o','n'};  // bt-zum
+static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'k','a','L','o','n'};  // nano
+//static uint8_t Bayang_rx_tx_addr[BAYANG_ADDRESS_LENGTH] = {'u','b','o','r','Z'}; // bt-zum
+
 
 enum{
     // flags going to packet[2]
@@ -55,12 +56,21 @@ void Bayang_init()
     //}
     
     Bayang_rf_channels[0] = 0x00;
+    
     for(i=1; i<BAYANG_RF_NUM_CHANNELS; i++) {
-        Bayang_rf_channels[0] = 0x21;
-        Bayang_rf_channels[1] = 0x17;
-        Bayang_rf_channels[2] = 0x37;
-        Bayang_rf_channels[3] = 0x02;
+        Bayang_rf_channels[0] = 0x35;
+        Bayang_rf_channels[1] = 0x11;
+        Bayang_rf_channels[2] = 0x05;
+        Bayang_rf_channels[3] = 0x24;
     }
+
+//    for(i=1; i<BAYANG_RF_NUM_CHANNELS; i++) {
+//        Bayang_rf_channels[0] = 0x21;
+//        Bayang_rf_channels[1] = 0x17;
+//        Bayang_rf_channels[2] = 0x37;
+//        Bayang_rf_channels[3] = 0x02;
+//    }
+    
     NRF24L01_Initialize();
     NRF24L01_SetTxRxMode(TX_EN);
     XN297_SetTXAddr(bind_address, BAYANG_ADDRESS_LENGTH);

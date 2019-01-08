@@ -268,11 +268,21 @@ void loop()
 
 void set_txid(bool renew)
 {
-  transmitterID[0] = 'r';
-  transmitterID[1] = 'a';
-  transmitterID[2] = 'd';
-  transmitterID[3] = 'y';
+  transmitterID[0] = 'b';
+  transmitterID[1] = 'o';
+  transmitterID[2] = 'o';
+  transmitterID[3] = 'm';
 }
+
+
+//void set_txid(bool renew)
+//{
+//  transmitterID[0] = 'r';
+//  transmitterID[1] = 'a';
+//  transmitterID[2] = 'd';
+//  transmitterID[3] = 'y';
+//}
+
 
 void selectProtocol()
 {
@@ -281,7 +291,7 @@ void selectProtocol()
     current_protocol = PROTO_BAYANG; // Bwhoop Pro
     
     // update eeprom
-    EEPROM.update(ee_PROTOCOL_ID, current_protocol);
+    // EEPROM.update(ee_PROTOCOL_ID, current_protocol);
 }
 
 void init_protocol()
