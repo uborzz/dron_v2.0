@@ -27,12 +27,13 @@ configurator = Configurator()
 video = video_writer()
 
 
-def get_undistort_map():
+def get_undistort_map(camera_undistort, width, height):
     try:
-        raise ("DESACTIVADO") # trick
+        if camera_undistort == False:
+            raise ("DESACTIVADO") # trick
         # Con la correccion ralentizamos un 15-20% másaswa
         # Aprox. observado: 20 fps OK con corrección de la distorsiónq vs 24 fps OK sin corrección - en 640x480
-
+        print("camera_undistort ON")
         # load the camera calibration parameters
         calfile = np.load('camera_calibration/calibration.npz')
         newcameramtx = calfile['newcameramtx']
@@ -54,6 +55,11 @@ def get_undistort_map():
 
 def clamp(n, minimum, maximum):
     return max(min(maximum, n), minimum)
+
+
+def safe_division(num, den, default=0):
+    try: return num / den
+    except ZeroDivisionError: return default
 
 
 def meanangle(angles, weights=0, setting='degrees'):
@@ -108,15 +114,25 @@ class rady_ring():
         return str(self.data)
 
 def tupla_BGR(color = "blanco"):
-    if color == "verde":            res = (0, 255, 0)
+    if color == "verde":            res = (0, 247, 0)
     elif color == "cyan":           res = (255, 255, 0)
     elif color == "amarillo":       res = (0, 255, 255)
     elif color == "azul":           res = (255, 0, 0)
     elif color == "rojo":           res = (0, 0, 255)
     elif color == "negro":          res = (0,0,0)
+    elif color == "lila":           res = (114, 52, 160)
+    elif color == "naranja":        res = (32, 164, 255)
     else:                           res = (255, 255, 255)  # blanco
     return res
 
+
+def circularidad(forma):
+    area = cv2.contourArea(forma)
+    perimetro = cv2.arcLength(forma, closed=True)
+    result = safe_division(perimetro**2, 4 * math.pi * area, default=1000)
+    # print("# - CIRCULARIDAD REAL -", result)
+    # print("# - AREA              -", area)
+    return result
 
 class Recorder(object):
     # Guarda info pasada de las posiciones, errores y demás.
@@ -299,12 +315,36 @@ def pinta_en_posicion(valores, posicion, color="negro"):
         offset += 20  # baja 20 pixeles.
 
 
-def diferencia_angulos(angulo1, angulo2):
+def diferencia_angulos(angulo1, angulo2, range_0_360=False):
+    """
+    :param angulo1: angulo 1 en grados
+    :param angulo2: angulo 2 en grados
+    :range_0_360: bool, selecciona salida en rango [0, 360)
+    :return:  diferencia angulo1-angulo2 en rango [-180, 180) por defecto
+    """
     angulo = angulo1 - angulo2
-    if angulo <= -180:
+    while angulo <= -180:
         angulo += 360
-    elif angulo > 180:
+    while angulo > 180:
         angulo -= 360
+    if range_0_360 and angulo < 0:
+        angulo += 360
+    return angulo
+
+def suma_angulos(angulo1, angulo2, range_0_360=False):
+    """
+    :param angulo1: angulo 1 en grados
+    :param angulo2: angulo 2 en grados
+    :range_0_360: bool, selecciona salida en rango [0, 360)
+    :return:  diferencia angulo1-angulo2 en rango [-180, 180) por defecto
+    """
+    angulo = angulo1 + angulo2
+    while angulo <= -180:
+        angulo += 360
+    while angulo > 180:
+        angulo -= 360
+    if range_0_360 and angulo < 0:
+        angulo += 360
     return angulo
 
 def extrae_vector_posicion(xi, yi, xf, yf):
@@ -417,6 +457,10 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
     elif k == ord('+'):
         gb.info = not gb.info
 
+
+    elif k == ord(','):
+        localizador.toggle_locator_3points()
+
     # PROVISIONAL - Funciones teclas si Modo del dron "CALIB_COLOR".
     if dron.mode == "CALIB_COLOR":
         ## PROVISIONAL - TODO Pasar a sliders
@@ -458,24 +502,31 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
 
     elif dron.mode == "MANUAL":
         val = 40
+        traza = True
         if k == 2424832:
             #izquierda
             gb.manual_ail -= val
+            if traza: print("Manual: Izquierda")
         elif k == 2555904:
             #derecha
             gb.manual_ail += val
+            if traza: print("Manual: Derecha")
         elif k == 2490368:
             #arriba
             gb.manual_ele += val
+            if traza: print("Manual: Avanti")
         elif k == 2621440:
             #abajo
             gb.manual_ele -= val
+            if traza: print("Manual: Patrá, patrá, patrá")
         elif k == 2162688:
             #RePag
             gb.manual_thr += val
+            if traza: print("Manual: Sube")
         elif k == 2228224:
             #AvPag
             gb.manual_thr -= val
+            if traza: print("Manual: Baja")
 
     else:
         if k == ord('c'):
@@ -658,7 +709,8 @@ def evalua_key(key_pressed, dron, controller, camera, localizador, frame=None):
                 video.turn_off()
                 print("Deactivating video capture...")
             else:
-                video.turn_on()
+                dims = tuple(reversed(frame.shape[0:2]))
+                video.turn_on(dims)
                 print("Capturing video...")
 
         elif k == ord('s'):

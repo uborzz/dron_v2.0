@@ -30,3 +30,5 @@ global fp1, fp2, fp3, path_x, path_y, path_angle
 
 
 global manual_thr, manual_ail, manual_ele
+first_frame = None
+aux_debug = False

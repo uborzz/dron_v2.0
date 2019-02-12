@@ -27,6 +27,7 @@ class video_writer:
 
     def initialize(self, filename=None, dims=(640,480)):
         # mejorar con mas params en futuro, ahora mismo vale asi.
+        # ya no vale asi...
 
         if filename == None:
             # automatic nombre
@@ -35,6 +36,7 @@ class video_writer:
 
         # Define the codec and create VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        print(dims)
         self.out = cv2.VideoWriter(self.filename, fourcc, 20.0, dims)
 
     def write(self, frame):
@@ -47,10 +49,11 @@ class video_writer:
         except:
             raise
 
-    def turn_on(self):
+    def turn_on(self, dimensions):
+        print("DIMENSIONS", dimensions)
         if self.never_launched == True:
             self.never_launched = False
-        self.initialize()
+            self.initialize(dims=dimensions)
         self.enabled = True
 
 

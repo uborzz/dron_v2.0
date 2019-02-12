@@ -147,10 +147,14 @@ class Dron:
 
 
     def change_mode(self):
-        index = self.modes_available.index(self.mode) + 1
-        if index >= len(self.modes_available):
-            index = 0
-        self.set_mode(self.modes_available[index])
+        try:
+            index = self.modes_available.index(self.mode) + 1
+            if index >= len(self.modes_available):
+                index = 0
+            self.set_mode(self.modes_available[index])
+        except ValueError:
+            print("Modo previo no definido en el set de modos (está en pruebas? :P). Pasando a modo INIT.")
+            self.set_mode("NO_INIT")
         print("Modo dron elegido:", self.mode)
 
     def turn_motors_ON(self):

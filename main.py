@@ -34,7 +34,7 @@ fps_camera = 25 # a mano, fps de captura de la camara (va en otro hilo).
 # fps_camera = int(fps + fps*0.15)  # framerate de captura camara (camara la llevo a otro hilo) - Un poco mas alto que el sampleo
 
 # matriz y coefs. de distorsión de la lente
-undistort, map1, map2, roi = rfs.get_undistort_map()
+undistort, map1, map2, roi = rfs.get_undistort_map(cfg.camera_undistort, width, height)
 
 timestamp = "{:%Y_%m_%d_%H_%M}".format(datetime.now())
 print("Timestamp:", timestamp)
@@ -132,15 +132,25 @@ def main():
             # _, frame = cam.read() # Con videoCapture de openCv a pelo
             gb.frame, gb.frame_time = cam.read()  # Con mi STREAM de video
 
-            # Espejo/rotate si/no?
-            if rotate:
-                gb.frame = cv2.flip(gb.frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
-
             # Camara calibrada? Obtenemos la transformacion
             if undistort:
+                if gb.aux_debug: cv2.imshow("RAW", gb.frame)
                 undistorted = cv2.remap(gb.frame, map1, map2, cv2.INTER_LINEAR)
+                # print("undistorted:", undistorted.shape)
                 x, y, w, h = roi
-                gb.frame = undistorted[y:y + h, x:x + w] # cropea el frame unudistorted
+                # print("roi:", roi)
+                border_w = (width - w) // 2
+                border_h = (height - h) // 2
+                # Enero - 2019 - No es necesario meter los bordes, pero como tenemos a pelo el pintar info en pantalla,
+                # para mantener dimensiones del frame sobre el que pintamos añadimos lo que falta de imagen.
+                # Se podrían tener más fps sin arrastrar estos bordes en todas las operaciones.
+                gb.frame = cv2.copyMakeBorder(undistorted[y:y + h, x:x + w], border_h, border_h, border_w, border_w, cv2.BORDER_CONSTANT, rfs.tupla_BGR("negro")) # cropea el frame unudistorted
+                # print("con bordes:", gb.frame.shape)
+
+            # Espejo/rotate si/no?
+            # Feb 19 - movido, flip after undistort.
+            if rotate:
+                gb.frame = cv2.flip(gb.frame, -1)  # 0 eje x, 1 eje y. -1 ambos (rota 180).
 
             # SCALE Imagen
             # frame = cv2.resize(frame, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_CUBIC)
@@ -199,6 +209,7 @@ def main():
 
             if video.is_enabled():
                 video.write(gb.frame)
+                # print("grabando")
 
     finally:
         cv2.destroyAllWindows()
